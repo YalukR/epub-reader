@@ -1,0 +1,6 @@
+/* El contenido del EPUB vive dentro de un iframe inyectado por epub.js;
+   nos aseguramos de que ocupe todo el contenedor sin scroll propio. */
+:host {
+  display: block;
+  height: 100%;
+}

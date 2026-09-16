@@ -1,0 +1,37 @@
+<div (click)="handleTap()" role="button" tabindex="0" (keydown.enter)="handleTap()"
+    class="group relative block w-full cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface-white text-left transition active:scale-[0.99] hover:border-blue dark:border-border-dark dark:bg-surface-white-dark dark:hover:border-blue-dark">
+    <div class="aspect-[2/3] w-full overflow-hidden bg-surface-alt dark:bg-surface-alt-dark">
+        @if (book().coverSrc) {
+        <img [src]="book().coverSrc" [alt]="book().title" class="h-full w-full object-cover" loading="lazy" />
+        } @else {
+        <div
+            class="flex h-full w-full items-center justify-center bg-blue-soft text-3xl font-semibold text-blue dark:bg-blue-soft-dark dark:text-blue-dark">
+            {{ book().title.charAt(0) }}
+        </div>
+        }
+    </div>
+
+    <div class="flex flex-col gap-1 p-3">
+        <h3 class="truncate font-semibold leading-snug text-main dark:text-main-dark">
+            {{ book().title }}
+        </h3>
+
+        @if (book().author) {
+        <p class="truncate text-xs text-muted dark:text-muted-dark">
+            {{ book().author }}
+        </p>
+        }
+
+        <div class="-mx-1 -mb-1 mt-1 flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-xs text-muted dark:text-muted-dark">
+                <i class="pi pi-book shrink-0"></i>
+                <span>EPUB</span>
+            </div>
+
+            <button (click)="onDelete($event)" aria-label="Borrar libro" title="Borrar libro"
+                class="flex h-9 w-9 items-center justify-center text-muted transition active:opacity-50 hover:text-danger dark:text-muted-dark dark:hover:text-danger-dark">
+                <i class="pi pi-trash text-base"></i>
+            </button>
+        </div>
+    </div>
+</div>

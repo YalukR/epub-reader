@@ -1,0 +1,23 @@
+<p-drawer [visible]="open" (visibleChange)="onOpenChange($event)" position="bottom" styleClass="!h-auto">
+  <ng-template #headless>
+    <div class="bg-surface-white p-5 dark:bg-surface-white-dark">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="font-semibold text-main dark:text-main-dark">Ajustes de lectura</h3>
+        <button (click)="close()" class="flex h-8 w-8 items-center justify-center text-muted dark:text-muted-dark">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <label class="mb-2 block text-sm text-muted dark:text-muted-dark">
+        Tamaño de texto — {{ fontSize }}%
+      </label>
+      <p-slider
+        [ngModel]="fontSize"
+        (ngModelChange)="fontSizeChange.emit($event)"
+        [min]="70"
+        [max]="200"
+        [step]="10"
+      />
+    </div>
+  </ng-template>
+</p-drawer>

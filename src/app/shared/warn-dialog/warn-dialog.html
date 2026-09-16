@@ -1,0 +1,40 @@
+@if (pending(); as req) {
+<div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4
+           [padding-top:max(1rem,env(safe-area-inset-top))]
+           [padding-bottom:max(1rem,env(safe-area-inset-bottom))]
+           [padding-left:max(1rem,env(safe-area-inset-left))]
+           [padding-right:max(1rem,env(safe-area-inset-right))]" (click)="cancel()">
+  <div class="w-full max-w-sm rounded-2xl bg-surface-white p-5 dark:bg-surface-white-dark"
+    (click)="$event.stopPropagation()">
+    <div class="flex items-start gap-3">
+      <i class="pi text-xl"
+        [class.pi-exclamation-triangle]="req.danger"
+        [class.text-danger]="req.danger"
+        [class.dark:text-danger-dark]="req.danger"
+        [class.pi-question-circle]="!req.danger"
+        [class.text-blue]="!req.danger"
+        [class.dark:text-blue-dark]="!req.danger"></i>
+
+      <div class="flex flex-col gap-1">
+        <h3 class="font-semibold text-main dark:text-main-dark">{{ req.title }}</h3>
+        <p class="text-sm text-muted dark:text-muted-dark">{{ req.message }}</p>
+      </div>
+    </div>
+
+    <div class="mt-5 flex justify-end gap-2">
+      <button (click)="cancel()"
+        class="rounded-full px-4 py-2 text-sm text-muted dark:text-muted-dark">
+        {{ req.cancelLabel || 'Cancelar' }}
+      </button>
+      <button (click)="confirm()"
+        class="rounded-full px-4 py-2 text-sm font-medium text-white"
+        [class.bg-danger]="req.danger"
+        [class.dark:bg-danger-dark]="req.danger"
+        [class.bg-blue]="!req.danger"
+        [class.dark:bg-blue-dark]="!req.danger">
+        {{ req.confirmLabel || 'Confirmar' }}
+      </button>
+    </div>
+  </div>
+</div>
+}

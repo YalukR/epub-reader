@@ -1,0 +1,51 @@
+<header class="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 pt-2 pb-1
+         bg-surface-alt dark:bg-surface-white-dark
+         [padding-left:max(1rem,env(safe-area-inset-left))]
+         [padding-right:max(1rem,env(safe-area-inset-right))]">
+
+  <div class="flex min-w-0 items-center gap-1.5">
+    @if (backPath()) {
+      <button type="button" class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-0 bg-transparent text-muted
+             transition-colors duration-200 hover:bg-surface-alt dark:text-muted-dark dark:hover:bg-surface-alt-dark"
+        (click)="goBack()">
+        <i class="pi pi-arrow-left text-base"></i>
+      </button>
+    }
+    <h1 class="truncate text-2xl font-bold text-main dark:text-main-dark">
+      {{ title() }}
+    </h1>
+  </div>
+
+  <div class="flex flex-shrink-0 items-center gap-1">
+    @if (actions().length > 0) {
+      @for (action of actions(); track action.icon + action.label) {
+        <button type="button" [attr.aria-label]="action.label" [attr.title]="action.label" (click)="action.onClick()"
+          class="flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-200 active:opacity-50"
+          [class.text-danger]="action.active" [class.dark:text-danger-dark]="action.active"
+          [class.text-muted]="!action.active" [class.dark:text-muted-dark]="!action.active">
+          <i [class]="'pi ' + action.icon + ' text-base'"></i>
+        </button>
+      }
+    } @else {
+      @for (item of icons; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="text-blue dark:text-blue-dark bg-blue-soft dark:bg-blue-soft-dark"
+          class="flex h-10 w-10 items-center justify-center rounded-full text-muted
+               transition-colors duration-200 dark:text-muted-dark">
+          <i [class]="'pi ' + item.icon + ' text-base'"></i>
+        </a>
+      }
+    }
+
+    <button
+      type="button"
+      aria-label="Cambiar tema"
+      [attr.title]="isDark() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+      class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-muted
+             transition-colors duration-200 hover:bg-surface-alt
+             dark:text-muted-dark dark:hover:bg-surface-alt-dark"
+      (click)="toggleTheme()"
+    >
+      <i [class]="'pi text-base ' + (isDark() ? 'pi-moon' : 'pi-sun')"></i>
+    </button>
+  </div>
+</header>

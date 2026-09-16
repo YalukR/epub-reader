@@ -1,0 +1,19 @@
+<section class="mb-8">
+  <h2 class="text-sm font-semibold text-muted dark:text-muted-dark">Tema</h2>
+  <br>
+  <div class="relative flex w-full rounded-full border border-border bg-surface-alt p-1.5
+              dark:border-border-dark dark:bg-surface-alt-dark">
+
+    <app-sliding-indicator [count]="themeOptions.length" [activeIndex]="activeThemeIndex()"
+      shapeClass="rounded-full bg-surface-white shadow-sm dark:bg-surface-white-dark" />
+
+    <button type="button" class="relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2
+             text-xs font-medium border-0 transition-colors duration-300 ease-out" *ngFor="let opt of themeOptions"
+      [class.text-blue]="currentTheme() === opt.value" [class.dark:text-blue-dark]="currentTheme() === opt.value"
+      [ngClass]="currentTheme() !== opt.value ? 'text-muted dark:text-muted-dark hover:text-main dark:hover:text-main-dark' : ''"
+      (click)="setTheme(opt.value)">
+      <i class="pi" [ngClass]="opt.icon"></i>
+      {{ opt.label }}
+    </button>
+  </div>
+</section>

@@ -1,0 +1,35 @@
+@if (footer(); as f) {
+  <footer
+    class="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-surface-white/90 px-4 py-2 backdrop-blur-md
+           dark:border-border-dark dark:bg-surface-white-dark/90
+           [padding-bottom:calc(0.5rem+env(safe-area-inset-bottom))]"
+  >
+    <div class="flex items-center gap-3">
+      <button
+        (click)="f.onPrev()"
+        aria-label="Página anterior"
+        class="flex h-9 w-9 shrink-0 items-center justify-center text-main transition active:opacity-50 dark:text-main-dark"
+      >
+        <i class="pi pi-chevron-left"></i>
+      </button>
+
+      <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-alt dark:bg-surface-alt-dark">
+        <div
+          class="h-full rounded-full bg-blue transition-all dark:bg-blue-dark"
+          [style.width.%]="f.percentage"
+        ></div>
+      </div>
+
+      <button
+        (click)="f.onNext()"
+        aria-label="Página siguiente"
+        class="flex h-9 w-9 shrink-0 items-center justify-center text-main transition active:opacity-50 dark:text-main-dark"
+      >
+        <i class="pi pi-chevron-right"></i>
+      </button>
+    </div>
+    <p class="mt-1 text-center text-[11px] text-muted dark:text-muted-dark">
+      {{ f.percentage }}%
+    </p>
+  </footer>
+}

@@ -1,0 +1,38 @@
+<p-drawer [visible]="open" (visibleChange)="onOpenChange($event)" position="right" styleClass="!w-80">
+  <ng-template #headless>
+    <div class="flex h-full flex-col bg-surface-white dark:bg-surface-white-dark">
+      <div class="flex items-center justify-between border-b border-border px-4 py-3 dark:border-border-dark">
+        <h3 class="font-semibold text-main dark:text-main-dark">Índice y marcadores</h3>
+        <button (click)="close()" class="flex h-8 w-8 items-center justify-center text-muted dark:text-muted-dark">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-2">
+        @if (bookmarks.length > 0) {
+          <p class="px-2 pb-1 pt-2 text-xs font-medium uppercase text-muted dark:text-muted-dark">Marcadores</p>
+          @for (bookmark of bookmarks; track bookmark.id) {
+            <button
+              (click)="bookmarkSelected.emit(bookmark)"
+              class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-main transition hover:bg-surface-alt dark:text-main-dark dark:hover:bg-surface-alt-dark"
+            >
+              <i class="pi pi-bookmark-fill text-danger dark:text-danger-dark"></i>
+              <span class="truncate">{{ bookmark.note || 'Página marcada' }}</span>
+            </button>
+          }
+          <div class="my-2 border-t border-border dark:border-border-dark"></div>
+        }
+
+        <p class="px-2 pb-1 pt-2 text-xs font-medium uppercase text-muted dark:text-muted-dark">Índice</p>
+        @for (item of toc; track item.href) {
+          <button
+            (click)="tocItemSelected.emit(item)"
+            class="flex w-full items-center rounded-lg px-2 py-2 text-left text-sm text-main transition hover:bg-surface-alt dark:text-main-dark dark:hover:bg-surface-alt-dark"
+          >
+            <span class="truncate">{{ item.label }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  </ng-template>
+</p-drawer>

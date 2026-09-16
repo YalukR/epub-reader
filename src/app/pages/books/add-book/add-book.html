@@ -1,0 +1,21 @@
+<div class="flex flex-col items-end gap-2">
+  <p-button
+    [label]="isImporting ? 'Importando…' : 'Agregar EPUB'"
+    icon="pi pi-plus"
+    [loading]="isImporting"
+    [disabled]="isImporting"
+    (onClick)="triggerFilePicker()"
+  />
+
+  <input
+    #fileInput
+    type="file"
+    accept=".epub,application/epub+zip"
+    hidden
+    (change)="onFileSelected($event)"
+  />
+
+  @if (errorMessage) {
+    <p class="text-xs text-danger dark:text-danger-dark">{{ errorMessage }}</p>
+  }
+</div>

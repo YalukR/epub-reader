@@ -1,0 +1,28 @@
+<div class="min-h-screen bg-surface-white dark:bg-surface-white-dark px-4 py-6 md:px-8">
+  <header class="flex items-center justify-between mb-8">
+    <h1 class="text-2xl font-semibold text-main dark:text-main-dark">
+      Mi biblioteca
+    </h1>
+
+    <app-add-book (imported)="loadBooks()" />
+  </header>
+
+  @if (books().length === 0) {
+    <div class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border dark:border-border-dark bg-surface-alt dark:bg-surface-alt-dark py-16 text-center">
+      <i class="pi pi-book text-3xl text-muted dark:text-muted-dark"></i>
+      <p class="text-muted dark:text-muted-dark">
+        Todavía no tienes libros. Importa tu primer EPUB para empezar.
+      </p>
+    </div>
+  } @else {
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+      @for (book of books(); track book.id) {
+        <app-book-card
+          [book]="book"
+          (openBook)="openBook(book)"
+          (deleteBook)="deleteBook(book)"
+        />
+      }
+    </div>
+  }
+</div>
