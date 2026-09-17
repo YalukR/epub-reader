@@ -15,14 +15,12 @@ registerLocaleData(localeEs);
 
 function initializeDatabase(dbService: DatabaseService) {
   return async () => {
-    try {
-      if (Capacitor.getPlatform() === 'web') {
-        await customElements.whenDefined('jeep-sqlite');
-      }
-      await dbService.init();
-    } catch (err) {
-      console.error('Fallo al inicializar la base de datos:', err);
+    if (Capacitor.getPlatform() === 'web') {
+      await customElements.whenDefined('jeep-sqlite');
     }
+    await dbService.init().catch(() => {
+      // el error ya quedó guardado en dbService.initError() para mostrarlo en UI
+    });
   };
 }
 

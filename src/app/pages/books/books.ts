@@ -26,10 +26,9 @@ export class Books implements OnInit, OnDestroy {
     private bookService: BookService,
     private fileImportService: FileImportService,
     private router: Router
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
-    await this.loadBooks();
     this.pageTitleService.setTitle('Mi Biblioteca');
     this.pageTitleService.setActions([
       {
@@ -38,6 +37,13 @@ export class Books implements OnInit, OnDestroy {
         onClick: () => this.addBook.triggerFilePicker(),
       },
     ]);
+
+    try {
+      await this.loadBooks();
+    } catch (err) {
+      console.error('Error cargando libros', err);
+      this.errorMessage.set('No se pudieron cargar los libros.');
+    }
   }
 
   ngOnDestroy(): void {

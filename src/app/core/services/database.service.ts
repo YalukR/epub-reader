@@ -1,4 +1,4 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable, NgZone, signal } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import {
   CapacitorSQLite,
@@ -16,12 +16,14 @@ export class DatabaseService {
   private ready = false;
   private initPromise?: Promise<void>;
 
-  constructor(private zone: NgZone) {}
+  private _initError = signal<string | null>(null);
+  readonly initError = this._initError.asReadonly();
 
-  /**
-   * Llamar una sola vez al arrancar la app (ver APP_INITIALIZER en app.config.ts).
-   * Es idempotente: si ya se está inicializando, reutiliza la misma promesa.
-   */
+  private _isReady = signal(false);
+  readonly isReady = this._isReady.asReadonly();
+
+  constructor(private zone: NgZone) { }
+
   init(): Promise<void> {
     if (this.ready) return Promise.resolve();
     if (!this.initPromise) {
@@ -31,33 +33,32 @@ export class DatabaseService {
   }
 
   private async doInit(): Promise<void> {
-    if (Capacitor.getPlatform() === 'web') {
-      // Requiere que <jeep-sqlite> esté registrado en index.html/main.ts.
-      await customElements.whenDefined('jeep-sqlite');
-      await this.sqlite.initWebStore();
-    }
+    try {
+      if (Capacitor.getPlatform() === 'web') {
+        await customElements.whenDefined('jeep-sqlite');
+        await this.sqlite.initWebStore();
+      }
 
-    this.addMigrations();
+      this.addMigrations();
 
-    const isConn = (await this.sqlite.isConnection(DB_NAME, false)).result;
-    this.db = isConn
-      ? await this.sqlite.retrieveConnection(DB_NAME, false)
-      : await this.sqlite.createConnection(
-          DB_NAME,
-          false,
-          'no-encryption',
-          DB_VERSION,
-          false
+      const isConn = (await this.sqlite.isConnection(DB_NAME, false)).result;
+      this.db = isConn
+        ? await this.sqlite.retrieveConnection(DB_NAME, false)
+        : await this.sqlite.createConnection(
+          DB_NAME, false, 'no-encryption', DB_VERSION, false
         );
 
-    await this.db.open();
+      await this.db.open();
+      await this.db.execute('PRAGMA foreign_keys = ON;');
 
-    // Sin esto, ON DELETE CASCADE no se aplica en SQLite.
-    await this.db.execute('PRAGMA foreign_keys = ON;');
-
-    this.ready = true;
+      this.ready = true;
+      this._isReady.set(true);
+    } catch (err) {
+      const detalle = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      this._initError.set(detalle);
+      throw err; // seguimos propagando, así init() rechaza si alguien la espera
+    }
   }
-
   /**
    * Esquema versionado. Para cambios futuros, agrega un nuevo objeto
    * { toVersion: 2, statements: [...] } al array y sube DB_VERSION arriba.
@@ -107,20 +108,13 @@ export class DatabaseService {
    * la vista no se repintara hasta hacer click en algún lado).
    */
   async run<T>(work: (db: SQLiteDBConnection) => Promise<T>): Promise<T> {
+    await this.init().catch(() => { }); // ya guardamos el error arriba, no relances aquí
     if (!this.ready) {
-      throw new Error(
-        'DatabaseService no inicializado. Llama a init() antes de usar cualquier servicio de datos.'
-      );
+      throw new Error(this._initError() ?? 'DatabaseService no pudo inicializarse.');
     }
-
     const result = await work(this.db);
-
-    // Reentramos a la zona explícitamente. Si ya estábamos dentro,
-    // esto es un no-op; si el plugin nos sacó de la zona, aquí
-    // recuperamos el contexto antes de devolver el valor al caller.
     return this.zone.run(() => result);
   }
-
   /**
    * Solo tiene efecto en web: persiste el estado de sql.js hacia IndexedDB.
    * En Android es un no-op porque ya escribe directo a disco.

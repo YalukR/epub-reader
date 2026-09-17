@@ -30,6 +30,7 @@
     "primeicons": "^8.0.1",
     "primeng": "^21.1.10",
     "rxjs": "~7.8.0",
+    "sharp": "^0.35.4",
     "sql.js": "1.11.0",
     "tailwindcss-primeui": "^0.6.1",
     "tslib": "^2.3.0"
@@ -38,6 +39,7 @@
     "@angular/build": "^21.2.15",
     "@angular/cli": "^21.2.15",
     "@angular/compiler-cli": "^21.2.0",
+    "@capacitor/assets": "^3.0.5",
     "@tailwindcss/postcss": "^4.1.12",
     "jsdom": "^28.0.0",
     "postcss": "^8.5.3",
@@ -45,5 +47,8 @@
     "tailwindcss": "^4.1.12",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
+  },
+  "allowScripts": {
+    "sharp@0.32.6": true
   }
 }

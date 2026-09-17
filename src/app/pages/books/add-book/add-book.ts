@@ -17,7 +17,7 @@ export class AddBook {
   imported = output<void>();
   importError = output<string>();
 
-  constructor(private fileImportService: FileImportService) {}
+  constructor(private fileImportService: FileImportService) { }
 
   triggerFilePicker(): void {
     this.fileInput.nativeElement.click();
@@ -36,7 +36,8 @@ export class AddBook {
       this.imported.emit();
     } catch (err) {
       console.error('Error al importar el EPUB:', err);
-      this.importError.emit('No se pudo importar el archivo. ¿Seguro que es un .epub válido?');
+      const detalle = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      this.importError.emit(`No se pudo importar el archivo. ¿Seguro que es un .epub válido?\n\n[${detalle}]`);
     } finally {
       this._isImporting.set(false);
     }

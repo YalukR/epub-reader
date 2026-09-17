@@ -1,7 +1,6 @@
-<div
-  class="min-h-screen bg-surface-alt [padding-top:max(1.5rem,env(safe-area-inset-top))] dark:bg-surface-white-dark">
+<div class="min-h-screen bg-surface-alt [padding-top:max(1.5rem,env(safe-area-inset-top))] dark:bg-surface-white-dark">
   @if (showChrome()) {
-    <app-page-header></app-page-header>
+  <app-page-header></app-page-header>
   }
   <div
     class="page-content px-4 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
@@ -9,8 +8,13 @@
     <app-warn-dialog />
     <br>
     <router-outlet />
+    @if (databaseService.initError(); as err) {
+    <div style="background:#5a1a1a; color:#fff; padding:8px; font-size:12px; word-break:break-all;">
+      DB init falló: {{ err }}
+    </div>
+    }
     @if (showChrome()) {
-      <app-page-footer></app-page-footer>
+    <app-page-footer></app-page-footer>
     }
   </div>
 </div>
