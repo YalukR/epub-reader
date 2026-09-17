@@ -1,59 +1,69 @@
-# EpubReader
+# Epub Reader
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.15.
+Un lector de libros EPUB para Android, hecho como práctica personal para entender cómo funciona un lector de EPUB por dentro: parseo del formato, extracción de metadata/portada, almacenamiento local con SQLite nativo, y manejo de archivos en el filesystem del dispositivo vía Capacitor.
 
-## Development server
+## Nota honesta sobre este proyecto
 
-To start a local development server, run:
+Este código fue desarrollado en parte con ayuda de IA (asistencia para escribir componentes, depurar errores y resolver problemas de integración con plugins nativos de Capacitor). No es un proyecto pulido ni una referencia de arquitectura perfecta — hay partes desordenadas, decisiones que podrían estar mejor organizadas, y seguramente algún que otro parche apresurado.
 
-```bash
-ng serve
-```
+Dicho esto: **funciona**. La app importa EPUBs, extrae su metadata y portada, los guarda en una base de datos SQLite local (funcionando tanto en web como en Android nativo), y permite leerlos. Si estás buscando código para aprender de él, tómalo con esa expectativa: útil y funcional, no un ejemplo de mejores prácticas al 100%.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Si encuentras algo raro, contribuciones y correcciones son bienvenidas.
 
-## Code scaffolding
+## Funcionalidades
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- Importar archivos `.epub` desde el dispositivo.
+- Extracción automática de título, autor y portada del libro.
+- Biblioteca local con vista en grid.
+- Lectura del EPUB integrada (via `epub.js`).
+- Progreso de lectura y marcadores guardados en base de datos local.
+- Tema claro/oscuro.
+- Funciona tanto en navegador (para desarrollo) como en APK de Android (SQLite nativo).
 
-```bash
-ng generate component component-name
-```
+## Stack técnico
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- **Angular** (standalone components, signals)
+- **Capacitor** — puente nativo para Android
+- **@capacitor-community/sqlite** — base de datos SQLite (nativa en Android, WASM/`jeep-sqlite` en web)
+- **@capacitor/filesystem** — almacenamiento de archivos EPUB y portadas
+- **epub.js** — parseo y renderizado de EPUB
+- **PrimeNG** — componentes de UI
+- **Tailwind CSS**
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Instalación y desarrollo
 
 ```bash
-ng test
+# Clonar el repo
+git clone https://github.com/TU_USUARIO/epub-reader.git
+cd epub-reader
+
+# Instalar dependencias
+npm install
+
+# Correr en navegador (modo desarrollo)
+npm start
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+### Compilar para Android
 
 ```bash
-ng e2e
+npx cap sync android
+cd android
+./gradlew assembleDebug
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+El APK generado queda en `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-## Additional Resources
+> **Nota:** si es la primera vez que compilas, asegúrate de correr `npx cap sync android` después de cualquier `npm install`, o el plugin de SQLite puede no registrarse correctamente en el build nativo.
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Esquema de base de datos
+
+La app usa tres tablas principales: `books`, `reading_progress` y `bookmarks`, con claves foráneas y `ON DELETE CASCADE` para mantener todo sincronizado al borrar un libro.
+
+## Licencia
+
+Este proyecto está licenciado bajo **GPL-3.0**. Puedes usarlo, modificarlo y distribuirlo libremente, siempre que cualquier trabajo derivado también se mantenga open source bajo la misma licencia. Ver el archivo [LICENSE](./LICENSE) para el texto completo.
+
+## Contribuciones
+
+Este es un proyecto personal/de aprendizaje, así que no esperes revisiones súper rigurosas de PRs, pero si quieres proponer una mejora, corregir un bug o sugerir algo, los issues y pull requests son bienvenidos.
