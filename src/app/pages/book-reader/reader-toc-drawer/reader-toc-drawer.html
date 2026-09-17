@@ -1,33 +1,43 @@
-<p-drawer [visible]="open" (visibleChange)="onOpenChange($event)" position="right" styleClass="!w-80">
+<p-drawer [visible]="open" (visibleChange)="onOpenChange($event)" position="right" styleClass="!w-[88vw] !max-w-sm">
   <ng-template #headless>
     <div class="flex h-full flex-col bg-surface-white dark:bg-surface-white-dark">
-      <div class="flex items-center justify-between border-b border-border px-4 py-3 dark:border-border-dark">
-        <h3 class="font-semibold text-main dark:text-main-dark">Índice y marcadores</h3>
-        <button (click)="close()" class="flex h-8 w-8 items-center justify-center text-muted dark:text-muted-dark">
-          <i class="pi pi-times"></i>
+      <div class="flex flex-shrink-0 items-center justify-between border-b border-border px-4 py-3 dark:border-border-dark">
+        <h3 class="text-base font-semibold text-main dark:text-main-dark">Índice y marcadores</h3>
+        <button
+          (click)="close()"
+          aria-label="Cerrar"
+          class="flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors active:bg-surface-alt dark:text-muted-dark dark:active:bg-surface-alt-dark"
+        >
+          <i class="pi pi-times text-lg"></i>
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-2">
+      <div class="flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         @if (bookmarks.length > 0) {
-          <p class="px-2 pb-1 pt-2 text-xs font-medium uppercase text-muted dark:text-muted-dark">Marcadores</p>
+          <p class="px-2 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-muted dark:text-muted-dark">
+            Marcadores
+          </p>
           @for (bookmark of bookmarks; track bookmark.id) {
             <button
               (click)="bookmarkSelected.emit(bookmark)"
-              class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-main transition hover:bg-surface-alt dark:text-main-dark dark:hover:bg-surface-alt-dark"
+              class="flex min-h-[3rem] w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm text-main
+                     transition-colors active:bg-surface-alt dark:text-main-dark dark:active:bg-surface-alt-dark"
             >
-              <i class="pi pi-bookmark-fill text-danger dark:text-danger-dark"></i>
+              <i class="pi pi-bookmark-fill flex-shrink-0 text-danger dark:text-danger-dark"></i>
               <span class="truncate">{{ bookmark.note || 'Página marcada' }}</span>
             </button>
           }
           <div class="my-2 border-t border-border dark:border-border-dark"></div>
         }
 
-        <p class="px-2 pb-1 pt-2 text-xs font-medium uppercase text-muted dark:text-muted-dark">Índice</p>
+        <p class="px-2 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-muted dark:text-muted-dark">
+          Índice
+        </p>
         @for (item of toc; track item.href) {
           <button
             (click)="tocItemSelected.emit(item)"
-            class="flex w-full items-center rounded-lg px-2 py-2 text-left text-sm text-main transition hover:bg-surface-alt dark:text-main-dark dark:hover:bg-surface-alt-dark"
+            class="flex min-h-[3rem] w-full items-center rounded-lg px-3 py-3 text-left text-sm text-main
+                   transition-colors active:bg-surface-alt dark:text-main-dark dark:active:bg-surface-alt-dark"
           >
             <span class="truncate">{{ item.label }}</span>
           </button>

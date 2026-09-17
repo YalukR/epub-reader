@@ -24,4 +24,12 @@ export class ReaderSettingsDrawer {
   close(): void {
     this.onOpenChange(false);
   }
+
+  increaseFontSize(): void {
+    this.fontSizeChange.emit(Math.min(200, this.fontSize + 10));
+  }
+
+  decreaseFontSize(): void {
+    this.fontSizeChange.emit(Math.max(70, this.fontSize - 10));
+  }
 }

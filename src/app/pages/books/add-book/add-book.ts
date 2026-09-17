@@ -1,21 +1,21 @@
-import { Component, ViewChild, ElementRef, output } from '@angular/core';
-import { ButtonModule } from 'primeng/button';
+import { Component, ViewChild, ElementRef, output, signal } from '@angular/core';
 import { FileImportService } from '../../../core/services/file-import.service';
 
 @Component({
   selector: 'app-add-book',
   standalone: true,
-  imports: [ButtonModule],
+  imports: [],
   templateUrl: './add-book.html',
   styleUrl: './add-book.css',
 })
 export class AddBook {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
-  isImporting = false;
-  errorMessage: string | null = null;
+  private _isImporting = signal(false);
+  isImporting = this._isImporting.asReadonly();
 
   imported = output<void>();
+  importError = output<string>();
 
   constructor(private fileImportService: FileImportService) {}
 
@@ -29,17 +29,16 @@ export class AddBook {
     input.value = ''; // permite reimportar el mismo archivo dos veces seguidas
     if (!file) return;
 
-    this.isImporting = true;
-    this.errorMessage = null;
+    this._isImporting.set(true);
 
     try {
       await this.fileImportService.importEpubFile(file);
       this.imported.emit();
     } catch (err) {
       console.error('Error al importar el EPUB:', err);
-      this.errorMessage = 'No se pudo importar el archivo. ¿Seguro que es un .epub válido?';
+      this.importError.emit('No se pudo importar el archivo. ¿Seguro que es un .epub válido?');
     } finally {
-      this.isImporting = false;
+      this._isImporting.set(false);
     }
   }
 }

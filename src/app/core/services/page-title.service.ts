@@ -11,6 +11,11 @@ export interface FooterProgress {
   percentage: number;
   onPrev: () => void;
   onNext: () => void;
+  isCarouselOpen: boolean;
+  onToggleCarousel: () => void;
+  pageCfis: string[];
+  currentPageIndex: number;
+  onPageSelected: (index: number) => void;
 }
 
 @Injectable({ providedIn: 'root' })

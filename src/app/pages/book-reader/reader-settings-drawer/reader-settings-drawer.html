@@ -1,23 +1,55 @@
-<p-drawer [visible]="open" (visibleChange)="onOpenChange($event)" position="bottom" styleClass="!h-auto">
+<p-drawer [visible]="open" (visibleChange)="onOpenChange($event)" position="bottom" styleClass="!h-auto !rounded-t-2xl">
   <ng-template #headless>
-    <div class="bg-surface-white p-5 dark:bg-surface-white-dark">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="font-semibold text-main dark:text-main-dark">Ajustes de lectura</h3>
-        <button (click)="close()" class="flex h-8 w-8 items-center justify-center text-muted dark:text-muted-dark">
-          <i class="pi pi-times"></i>
+    <div class="bg-surface-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] dark:bg-surface-white-dark">
+      <!-- Manija visual: refuerza que esto es un panel arrastrable hacia abajo -->
+      <div class="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border dark:bg-border-dark"></div>
+
+      <label class="mb-3 flex items-center justify-between text-sm text-muted dark:text-muted-dark">
+        <span>Tamaño de texto</span>
+        <span class="font-medium text-main dark:text-main-dark">{{ fontSize }}%</span>
+      </label>
+
+      <!-- Botones +/- para ajustar sin depender de precisión de arrastre en pantallas táctiles -->
+      <div class="flex items-center gap-3">
+        <button
+          (click)="decreaseFontSize()"
+          [disabled]="fontSize <= 70"
+          aria-label="Reducir tamaño de texto"
+          class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-surface-alt text-main
+                 transition-colors active:bg-border disabled:opacity-40
+                 dark:bg-surface-alt-dark dark:text-main-dark dark:active:bg-border-dark"
+        >
+          <i class="pi pi-minus text-sm"></i>
+        </button>
+
+        <p-slider
+          class="flex-1"
+          [ngModel]="fontSize"
+          (ngModelChange)="fontSizeChange.emit($event)"
+          [min]="70"
+          [max]="200"
+          [step]="10"
+        />
+
+        <button
+          (click)="increaseFontSize()"
+          [disabled]="fontSize >= 200"
+          aria-label="Aumentar tamaño de texto"
+          class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-surface-alt text-main
+                 transition-colors active:bg-border disabled:opacity-40
+                 dark:bg-surface-alt-dark dark:text-main-dark dark:active:bg-border-dark"
+        >
+          <i class="pi pi-plus text-sm"></i>
         </button>
       </div>
 
-      <label class="mb-2 block text-sm text-muted dark:text-muted-dark">
-        Tamaño de texto — {{ fontSize }}%
-      </label>
-      <p-slider
-        [ngModel]="fontSize"
-        (ngModelChange)="fontSizeChange.emit($event)"
-        [min]="70"
-        [max]="200"
-        [step]="10"
-      />
+      <!-- Vista previa en vivo del tamaño elegido -->
+      <p
+        class="mt-4 truncate text-main dark:text-main-dark"
+        [style.font-size.%]="fontSize"
+      >
+        Aa — así se verá el texto
+      </p>
     </div>
   </ng-template>
 </p-drawer>

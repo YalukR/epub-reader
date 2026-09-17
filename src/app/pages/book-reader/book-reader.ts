@@ -8,6 +8,7 @@ import {
   computed,
   effect,
   inject,
+  NgZone,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -18,17 +19,17 @@ import { BookService } from '../../core/services/book.service';
 import { FileImportService } from '../../core/services/file-import.service';
 import { ReadingProgressService } from '../../core/services/reading-progress.service';
 import { BookmarkService } from '../../core/services/book-mark.service';
-import { DarkModeSyncService } from '../../core/services/dark-mode-sync.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { Book, Bookmark } from '../../core/models/database.model';
 import { PageTitleService } from '../../core/services/page-title.service';
 import { ReaderTocDrawer } from './reader-toc-drawer/reader-toc-drawer';
 import { ReaderSettingsDrawer } from './reader-settings-drawer/reader-settings-drawer';
+import { EpubPageThumbnailsService } from '../../core/services/epub-page-thumbnails.service';
 
 @Component({
   selector: 'app-book-reader',
   standalone: true,
   imports: [ButtonModule, ReaderTocDrawer, ReaderSettingsDrawer],
-  providers: [DarkModeSyncService],
   templateUrl: './book-reader.html',
   styleUrl: './book-reader.css',
 })
@@ -36,6 +37,11 @@ export class BookReader implements OnInit, OnDestroy {
   @ViewChild('readerContainer', { static: true }) readerContainer!: ElementRef<HTMLElement>;
 
   private pageTitleService = inject(PageTitleService);
+  private thumbnailsService = inject(EpubPageThumbnailsService);
+
+  isCarouselOpen = signal(false);
+  pageCfis = signal<string[]>([]);
+  currentPageIndex = signal(-1);
 
   book = signal<Book | null>(null);
   toc = signal<NavItem[]>([]);
@@ -63,11 +69,12 @@ export class BookReader implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private epubReader: EpubReaderService,
-    private darkMode: DarkModeSyncService,
+    private themeService: ThemeService,
     private bookService: BookService,
     private fileImportService: FileImportService,
     private readingProgressService: ReadingProgressService,
-    private bookmarkService: BookmarkService
+    private bookmarkService: BookmarkService,
+    private zone: NgZone
   ) {
     this.pageTitleService.enableBack();
 
@@ -92,18 +99,33 @@ export class BookReader implements OnInit, OnDestroy {
       ]);
     });
 
-    // Empuja el progreso y los controles de página al footer global.
-    // Como onPrev/onNext llaman a this.next()/this.prev(), siempre usan
-    // la instancia actual de epubReader sin importar cuándo se disparen.
+    // Empuja el progreso, los controles de página y el carrusel de
+    // páginas al footer global. Como onPrev/onNext/onPageSelected llaman
+    // a métodos de esta clase, siempre usan la instancia actual de
+    // epubReader sin importar cuándo se disparen.
     effect(() => {
       this.pageTitleService.setFooter({
         percentage: this.progressPercentage(),
         onPrev: () => this.prev(),
         onNext: () => this.next(),
+        isCarouselOpen: this.isCarouselOpen(),
+        onToggleCarousel: () => this.toggleCarousel(),
+        pageCfis: this.pageCfis(),
+        currentPageIndex: this.currentPageIndex(),
+        onPageSelected: (index: number) => this.goToPage(index),
       });
     });
 
-    this.darkMode.watch((isDark) => this.epubReader.setDarkMode(isDark));
+    // Fuente única de verdad para el tema: ThemeService.isDark es un
+    // signal, así que este effect se re-ejecuta solo cada vez que cambia
+    // (botón del header o cambio de tema del sistema en modo 'system').
+    // Al construirse el componente el rendition aún no existe, por lo que
+    // esta primera ejecución no hace nada (setDarkMode corta temprano);
+    // el tema inicial se aplica explícitamente en openBook() una vez
+    // abierto el libro.
+    effect(() => {
+      this.epubReader.setDarkMode(this.themeService.isDark());
+    });
   }
 
   async ngOnInit(): Promise<void> {
@@ -124,8 +146,6 @@ export class BookReader implements OnInit, OnDestroy {
     clearTimeout(this.saveProgressTimeout);
     this.epubReader.destroy();
     this.pageTitleService.clear();
-    // darkMode se destruye solo: al ser un provider de este componente,
-    // Angular llama a su ngOnDestroy automáticamente.
   }
 
   private async openBook(): Promise<void> {
@@ -147,29 +167,56 @@ export class BookReader implements OnInit, OnDestroy {
         this.bookmarkService.getBookmarksForBook(this.bookId),
       ]);
 
-      this.bookmarks.set(bookmarks);
-      if (progress?.percentage) {
-        this.progressPercentage.set(Math.round(progress.percentage * 10) / 10);
-      }
+      this.zone.run(() => {
+        this.bookmarks.set(bookmarks);
+        if (progress?.percentage) {
+          this.progressPercentage.set(Math.round(progress.percentage * 10) / 10);
+        }
+      });
 
       await this.epubReader.open(bytes, this.readerContainer.nativeElement, progress?.cfi);
       // Aplica el tema actual de inmediato: evita el flash de fondo blanco
-      // en modo oscuro mientras darkMode solo reacciona a cambios futuros.
-      this.epubReader.setDarkMode(document.documentElement.classList.contains('dark'));
+      // en modo oscuro. El effect() del constructor solo reacciona a
+      // cambios futuros de ThemeService.isDark.
+      this.epubReader.setDarkMode(this.themeService.isDark());
 
       this.epubReader.onLocationChanged((location: ReaderLocation) => {
         this.currentCfi.set(location.cfi);
         this.progressPercentage.set(location.percentage);
+        this.currentPageIndex.set(this.thumbnailsService.getLocationIndexForCfi(location.cfi));
         this.scheduleProgressSave(location);
       });
 
       const toc = await this.epubReader.getToc();
       this.toc.set(toc);
 
-      this.epubReader.generateLocations();
+      // No se awaitea: generateLocations() recorre todo el libro y puede
+      // tardar en libros grandes, así que no queremos bloquear isLoading
+      // por esto. pageCfis/currentPageIndex quedan en su valor por defecto
+      // (vacío / -1) hasta que termine, y el carrusel de páginas simplemente
+      // no tiene nada para mostrar todavía si el usuario lo abre antes.
+      this.epubReader.generateLocations().then(() => {
+        this.zone.run(() => {
+          this.pageCfis.set(this.thumbnailsService.getPageCfis());
+          // El CFI actual ya pudo haberse seteado en onLocationChanged antes
+          // de que existieran locations (locationFromCfi habría dado -1),
+          // así que lo recalculamos ahora que sí existen.
+          const cfi = this.currentCfi();
+          if (cfi) {
+            this.currentPageIndex.set(this.thumbnailsService.getLocationIndexForCfi(cfi));
+          }
+        });
+      });
     } catch (err) {
       console.error('Error al abrir el libro:', err);
-      this.errorMessage.set('No se pudo abrir este libro. El archivo podría estar dañado.');
+      const message = (err as Error)?.message;
+      if (message === 'EPUB_CORRUPTO') {
+        this.errorMessage.set('Este archivo EPUB está dañado o tiene un formato no compatible.');
+      } else if (message === 'EPUB_TIMEOUT') {
+        this.errorMessage.set('El libro tardó demasiado en abrir. Probá de nuevo.');
+      } else {
+        this.errorMessage.set('No se pudo abrir este libro. El archivo podría estar dañado.');
+      }
     } finally {
       this.isLoading.set(false);
     }
@@ -193,6 +240,16 @@ export class BookReader implements OnInit, OnDestroy {
 
   async prev(): Promise<void> {
     await this.epubReader.prev();
+  }
+
+  toggleCarousel(): void {
+    this.isCarouselOpen.update((v) => !v);
+  }
+
+  async goToPage(index: number): Promise<void> {
+    const cfi = this.pageCfis()[index];
+    if (cfi) await this.epubReader.goTo(cfi);
+    this.isCarouselOpen.set(false);
   }
 
   async goToTocItem(item: NavItem): Promise<void> {

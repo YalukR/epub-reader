@@ -1,5 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import ePub, { Book, Rendition, NavItem } from 'epubjs';
+import { EpubPageThumbnailsService } from './epub-page-thumbnails.service';
 
 export interface ReaderLocation {
   cfi: string;
@@ -11,20 +12,43 @@ export class EpubReaderService {
   private book?: Book;
   private rendition?: Rendition;
 
-  constructor(private zone: NgZone) { }
+  constructor(
+    private zone: NgZone,
+    private thumbnailsService: EpubPageThumbnailsService // nuevo
+  ) { }
 
   /**
    * Abre un EPUB a partir de sus bytes en memoria y lo renderiza dentro
    * del elemento dado. Llamar destroy() antes de abrir uno nuevo si ya
    * había un libro cargado.
    */
-  async open(
-    data: ArrayBuffer,
-    container: HTMLElement,
-    startCfi?: string
-  ): Promise<void> {
+  async open(data: ArrayBuffer, container: HTMLElement, startCfi?: string): Promise<void> {
     this.book = ePub(data);
-    this.rendition = this.book.renderTo(container, {
+    try {
+      await Promise.race([
+        this.doOpen(container, startCfi),
+        this.watchForUncaughtEpubErrors(),
+        this.timeoutAfter(15000),
+      ]); this.thumbnailsService.attach(this.book);
+    } finally {
+      this.stopWatchingForUncaughtEpubErrors();
+    }
+  }
+
+  private async doOpen(container: HTMLElement, startCfi?: string): Promise<void> {
+    await this.book!.ready;
+
+    // Chequeo proactivo: si algún ítem del spine no tiene href resuelto,
+    // el EPUB está mal armado (idref sin su manifest correspondiente) y
+    // epub.js va a reventar apenas intente renderizarlo. Mejor cortar acá
+    // con un mensaje claro que dejar que explote en medio del render.
+    const spineItems: any[] = (this.book as any).spine?.items ?? [];
+    const hasInvalidSpineItem = spineItems.some((item) => !item.href);
+    if (spineItems.length === 0 || hasInvalidSpineItem) {
+      throw new Error('EPUB_CORRUPTO');
+    }
+
+    this.rendition = this.book!.renderTo(container, {
       width: '100%',
       height: '100%',
       flow: 'paginated',
@@ -38,7 +62,70 @@ export class EpubReaderService {
     // (se combina con él en vez de reemplazarlo).
     this.rendition.themes.default(this.baseThemeRules);
 
-    await this.rendition.display(startCfi);
+    // No usamos themes.register()/select() para claro/oscuro: en la
+    // práctica resultó inconsistente (funcionaba el primer cambio y se
+    // quedaba pegado en los siguientes, por cómo epub.js reutiliza o no
+    // su <style> interno según la versión). En su lugar, mantenemos
+    // nosotros un único <style id="app-theme-style"> por página, que
+    // reemplazamos por completo en cada cambio de tema y que se vuelve a
+    // aplicar automáticamente cada vez que epub.js renderiza una página
+    // nueva (cambio de capítulo, avance/retroceso).
+    this.rendition.hooks.content.register((contents: any) => {
+      this.applyThemeToContent(contents);
+    });
+
+    if (startCfi) {
+      await this.rendition.display(startCfi);
+    } else {
+      await this.rendition.display();
+    }
+  }
+
+  private errorListener?: (event: ErrorEvent) => void;
+  private rejectionListener?: (event: PromiseRejectionEvent) => void;
+
+  /**
+   * Convierte en un rechazo real de promesa los errores que epub.js deja
+   * sueltos (throws síncronos dentro de sus propios callbacks internos de
+   * render, que no forman parte de la cadena de promesas que awaiteamos).
+   * Sin esto, esos errores solo aparecen en consola y open() nunca se
+   * entera de que algo salió mal.
+   */
+  private watchForUncaughtEpubErrors(): Promise<never> {
+    return new Promise((_, reject) => {
+      this.errorListener = (event: ErrorEvent) => {
+        if (this.looksLikeEpubJsError(event.message)) {
+          event.preventDefault();
+          reject(new Error('EPUB_CORRUPTO'));
+        }
+      };
+      this.rejectionListener = (event: PromiseRejectionEvent) => {
+        if (this.looksLikeEpubJsError(event.reason?.message)) {
+          event.preventDefault();
+          reject(new Error('EPUB_CORRUPTO'));
+        }
+      };
+      window.addEventListener('error', this.errorListener);
+      window.addEventListener('unhandledrejection', this.rejectionListener);
+    });
+  }
+
+  private stopWatchingForUncaughtEpubErrors(): void {
+    if (this.errorListener) window.removeEventListener('error', this.errorListener);
+    if (this.rejectionListener) window.removeEventListener('unhandledrejection', this.rejectionListener);
+    this.errorListener = undefined;
+    this.rejectionListener = undefined;
+  }
+
+  private looksLikeEpubJsError(message?: string): boolean {
+    if (!message) return false;
+    return message.includes('pathString is undefined') || message.includes('indexOf');
+  }
+
+  private timeoutAfter(ms: number): Promise<never> {
+    return new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('EPUB_TIMEOUT')), ms);
+    });
   }
 
   /**
@@ -112,6 +199,7 @@ export class EpubReaderService {
   }
 
   destroy(): void {
+    this.stopWatchingForUncaughtEpubErrors();
     this.rendition?.destroy();
     this.book?.destroy();
     this.rendition = undefined;
@@ -158,11 +246,52 @@ export class EpubReaderService {
     },
   };
 
+  // Estado actual del tema, independiente de epub.js: es la fuente de
+  // verdad que usamos tanto para pintar la página visible como para
+  // repintar cada página nueva que epub.js vaya renderizando.
+  private isDarkMode = false;
+
   setDarkMode(isDark: boolean): void {
+    this.isDarkMode = isDark;
     if (!this.rendition) return;
 
-    this.rendition.themes.register('light', this.lightThemeRules);
-    this.rendition.themes.register('dark', this.darkThemeRules);
-    this.rendition.themes.select(isDark ? 'dark' : 'light');
+    // El tipado de epubjs para getContents() no coincide con el runtime
+    // en todas las versiones (a veces es un Contents suelto, a veces un
+    // arreglo), así que normalizamos antes de iterar.
+    const contents: any = this.rendition.getContents();
+    const contentsList: any[] = Array.isArray(contents) ? contents : contents ? [contents] : [];
+    contentsList.forEach((content) => this.applyThemeToContent(content));
+  }
+
+  /**
+   * Inyecta (o reemplaza) un único <style> con las reglas del tema actual
+   * dentro del documento del iframe de esa página. Al usar siempre el
+   * mismo id, cada llamada REEMPLAZA el contenido anterior en vez de
+   * acumular <style> compitiendo entre sí, que era la causa de que el
+   * segundo cambio de tema (y siguientes) no se reflejara.
+   */
+  private applyThemeToContent(content: any): void {
+    const doc: Document | undefined = content?.document;
+    if (!doc) return;
+
+    const rules = this.isDarkMode ? this.darkThemeRules : this.lightThemeRules;
+    let styleEl = doc.getElementById('app-theme-style') as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = 'app-theme-style';
+      doc.head?.appendChild(styleEl);
+    }
+    styleEl.textContent = this.rulesToCss(rules);
+  }
+
+  private rulesToCss(rules: Record<string, Record<string, string>>): string {
+    return Object.entries(rules)
+      .map(([selector, props]) => {
+        const body = Object.entries(props)
+          .map(([prop, value]) => `${prop}: ${value};`)
+          .join(' ');
+        return `${selector} { ${body} }`;
+      })
+      .join('\n');
   }
 }

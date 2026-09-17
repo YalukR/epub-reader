@@ -1,10 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BookService } from '../../core/services/book.service';
 import { FileImportService } from '../../core/services/file-import.service';
 import { Book } from '../../core/models/database.model';
 import { BookCard, BookWithCover } from './book-card/book-card';
 import { AddBook } from './add-book/add-book';
+import { PageTitleService } from '../../core/services/page-title.service';
 
 @Component({
   selector: 'app-books',
@@ -13,10 +14,13 @@ import { AddBook } from './add-book/add-book';
   templateUrl: './books.html',
   styleUrl: './books.css',
 })
-export class Books implements OnInit {
-  // Signal en vez de propiedad plana: Angular repinta al hacer .set(),
-  // sin depender de que la promesa haya resuelto "dentro de zona".
+export class Books implements OnInit, OnDestroy {
   books = signal<BookWithCover[]>([]);
+  errorMessage = signal<string | null>(null);
+
+  @ViewChild('addBook') addBook!: AddBook;
+
+  private pageTitleService = inject(PageTitleService);
 
   constructor(
     private bookService: BookService,
@@ -26,6 +30,18 @@ export class Books implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.loadBooks();
+    this.pageTitleService.setTitle('Mi Biblioteca');
+    this.pageTitleService.setActions([
+      {
+        icon: 'pi-plus',
+        label: 'Agregar EPUB',
+        onClick: () => this.addBook.triggerFilePicker(),
+      },
+    ]);
+  }
+
+  ngOnDestroy(): void {
+    this.pageTitleService.clear();
   }
 
   async loadBooks(): Promise<void> {
@@ -38,6 +54,10 @@ export class Books implements OnInit {
     );
 
     this.books.set(withCovers);
+  }
+
+  onImportError(message: string): void {
+    this.errorMessage.set(message);
   }
 
   openBook(book: Book): void {
