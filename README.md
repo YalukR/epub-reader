@@ -34,7 +34,7 @@ Si encuentras algo raro, contribuciones y correcciones son bienvenidas.
 
 ```bash
 # Clonar el repo
-git clone https://github.com/TU_USUARIO/epub-reader.git
+git clone https://github.com/YalukR/epub-reader.git
 cd epub-reader
 
 # Instalar dependencias
