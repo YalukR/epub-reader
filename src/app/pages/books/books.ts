@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, signal, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BookService } from '../../core/services/book.service';
 import { FileImportService } from '../../core/services/file-import.service';
@@ -17,6 +17,18 @@ import { PageTitleService } from '../../core/services/page-title.service';
 export class Books implements OnInit, OnDestroy {
   books = signal<BookWithCover[]>([]);
   errorMessage = signal<string | null>(null);
+  searchTerm = signal('');
+
+  // El orden real (fijados arriba, luego últimos leídos) lo hace la query
+  // en getAllBooks(); acá solo filtramos por texto sobre lo que ya viene ordenado.
+  filteredBooks = computed(() => {
+    const term = this.searchTerm().trim().toLowerCase();
+    if (!term) return this.books();
+    return this.books().filter(b =>
+      b.title.toLowerCase().includes(term) ||
+      (b.author?.toLowerCase().includes(term) ?? false)
+    );
+  });
 
   @ViewChild('addBook') addBook!: AddBook;
 
@@ -66,7 +78,10 @@ export class Books implements OnInit, OnDestroy {
     this.errorMessage.set(message);
   }
 
-  openBook(book: Book): void {
+  async openBook(book: Book): Promise<void> {
+    if (book.id) {
+      await this.bookService.markAsOpened(book.id);
+    }
     this.router.navigate(['/reader', book.id]);
   }
 
@@ -79,5 +94,12 @@ export class Books implements OnInit, OnDestroy {
     }
     await this.bookService.deleteBook(book.id);
     await this.loadBooks();
+  }
+
+  // TODO: requiere que book.service.ts exponga togglePin(id, pinned)
+  async togglePin(book: BookWithCover): Promise<void> {
+    if (!book.id) return;
+    await this.bookService.togglePin(book.id, !book.isPinned);
+    await this.loadBooks(); // recarga ya reordenada desde la DB
   }
 }

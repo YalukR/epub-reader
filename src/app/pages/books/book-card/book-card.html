@@ -28,10 +28,22 @@
                 <span>EPUB</span>
             </div>
 
-            <button (click)="onDelete($event)" aria-label="Borrar libro" title="Borrar libro"
-                class="flex h-9 w-9 items-center justify-center text-muted transition active:opacity-50 hover:text-danger dark:text-muted-dark dark:hover:text-danger-dark">
-                <i class="pi pi-trash text-base"></i>
-            </button>
+            <div class="flex items-center">
+                <button (click)="onTogglePin($event)"
+                    [attr.aria-label]="book().isPinned ? 'Desfijar libro' : 'Fijar libro'"
+                    [title]="book().isPinned ? 'Desfijar libro' : 'Fijar libro'"
+                    class="flex h-9 w-9 items-center justify-center transition active:opacity-50"
+                    [class.text-blue]="book().isPinned" [class.dark:text-blue-dark]="book().isPinned"
+                    [class.text-muted]="!book().isPinned" [class.dark:text-muted-dark]="!book().isPinned">
+                    <i class="pi text-base" [class.pi-bookmark-fill]="book().isPinned"
+                        [class.pi-bookmark]="!book().isPinned"></i>
+                </button>
+
+                <button (click)="onDelete($event)" aria-label="Borrar libro" title="Borrar libro"
+                    class="flex h-9 w-9 items-center justify-center text-muted transition active:opacity-50 hover:text-danger dark:text-muted-dark dark:hover:text-danger-dark">
+                    <i class="pi pi-trash text-base"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>

@@ -2,25 +2,37 @@
   <app-add-book #addBook (imported)="loadBooks()" (importError)="onImportError($event)" />
 
   @if (errorMessage()) {
-    <p class="text-xs text-danger dark:text-danger-dark mb-4">{{ errorMessage() }}</p>
+  <p class="text-xs text-danger dark:text-danger-dark mb-4">{{ errorMessage() }}</p>
+  }
+
+  @if (books().length > 0) {
+  <div class="relative mb-4">
+    <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-muted dark:text-muted-dark"></i>
+    <input type="text" [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)"
+      placeholder="Buscar por título o autor..."
+      class="w-full rounded-lg border border-border dark:border-border-dark bg-surface-alt dark:bg-surface-alt-dark py-2 pl-9 pr-3 text-sm text-main dark:text-main-dark placeholder:text-muted dark:placeholder:text-muted-dark" />
+  </div>
+  <br>
   }
 
   @if (books().length === 0) {
-    <div class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border dark:border-border-dark bg-surface-alt dark:bg-surface-alt-dark py-16 text-center">
-      <i class="pi pi-book text-3xl text-muted dark:text-muted-dark"></i>
-      <p class="text-muted dark:text-muted-dark">
-        Todavía no tienes libros. Importa tu primer EPUB para empezar.
-      </p>
-    </div>
+  <div
+    class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border dark:border-border-dark bg-surface-alt dark:bg-surface-alt-dark py-16 text-center">
+    <i class="pi pi-book text-3xl text-muted dark:text-muted-dark"></i>
+    <p class="text-muted dark:text-muted-dark">
+      Todavía no tienes libros. Importa tu primer EPUB para empezar.
+    </p>
+  </div>
+  } @else if (filteredBooks().length === 0) {
+  <p class="text-center text-sm text-muted dark:text-muted-dark py-16">
+    Sin resultados para "{{ searchTerm() }}".
+  </p>
   } @else {
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-      @for (book of books(); track book.id) {
-        <app-book-card
-          [book]="book"
-          (openBook)="openBook(book)"
-          (deleteBook)="deleteBook(book)"
-        />
-      }
-    </div>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+    @for (book of filteredBooks(); track book.id) {
+    <app-book-card [book]="book" (openBook)="openBook(book)" (deleteBook)="deleteBook(book)"
+      (togglePin)="togglePin(book)" />
+    }
+  </div>
   }
 </div>

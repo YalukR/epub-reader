@@ -19,10 +19,32 @@ export class FileImportService {
    */
   async importEpubFile(file: File): Promise<number> {
     const arrayBuffer = await file.arrayBuffer();
-    const base64Data = arrayBufferToBase64(arrayBuffer);
+    const fallbackTitle = file.name.replace(/\.epub$/i, '');
+    const book = await this.importFromArrayBuffer(arrayBuffer, fallbackTitle, file.size);
+    return book.id!;
+  }
 
-    // Nombre de archivo único para evitar colisiones si importan dos
-    // libros distintos con el mismo nombre original.
+  /**
+   * Recibe una URI de contenido externa (content:// desde WhatsApp, Gmail,
+   * un explorador de archivos, etc. — llega vía appUrlOpen/getLaunchUrl),
+   * lee sus bytes y sigue el mismo flujo de importación que el picker manual.
+   * Devuelve el Book completo (con id) para poder navegar directo al reader.
+   */
+  async importFromUri(uri: string): Promise<Book> {
+    // Sin `directory`: Filesystem resuelve la URI completa (content:// o file://)
+    // en vez de buscarla dentro de un directorio propio de la app.
+    const { data } = await Filesystem.readFile({ path: uri });
+    const arrayBuffer = base64ToArrayBuffer(data as string);
+    return this.importFromArrayBuffer(arrayBuffer, 'Libro compartido');
+  }
+
+  /** Lógica común: guarda el epub, extrae metadata/portada y crea el registro en DB. */
+  private async importFromArrayBuffer(
+    arrayBuffer: ArrayBuffer,
+    fallbackTitle: string,
+    fileSize?: number
+  ): Promise<Book> {
+    const base64Data = arrayBufferToBase64(arrayBuffer);
     const fileName = `${crypto.randomUUID()}.epub`;
     const relativePath = `${this.BOOKS_DIR}/${fileName}`;
 
@@ -33,7 +55,6 @@ export class FileImportService {
       directory: Directory.Data,
     });
 
-    // Extrae metadata abriendo el EPUB en memoria (sin renderizar nada).
     const { title, author, coverUrl } = await this.extractMetadata(arrayBuffer);
 
     let coverPath: string | undefined;
@@ -42,15 +63,16 @@ export class FileImportService {
     }
 
     const book: Book = {
-      title: title || file.name.replace(/\.epub$/i, ''),
+      title: title || fallbackTitle,
       author,
       coverPath,
       filePath: relativePath,
-      fileSize: file.size,
+      fileSize: fileSize ?? arrayBuffer.byteLength,
       addedAt: Date.now(),
     };
 
-    return this.bookService.addBook(book);
+    const id = await this.bookService.addBook(book);
+    return { ...book, id };
   }
 
   /** Lee el .epub ya guardado y devuelve sus bytes, listos para EpubReaderService.open(). */
@@ -59,7 +81,6 @@ export class FileImportService {
       path: relativePath,
       directory: Directory.Data,
     });
-    // En Android/iOS, readFile con encoding omitido devuelve base64 (string).
     return base64ToArrayBuffer(result.data as string);
   }
 
@@ -87,8 +108,6 @@ export class FileImportService {
     arrayBuffer: ArrayBuffer
   ): Promise<{ title: string; author: string; coverUrl: string | null }> {
     const book = ePub(arrayBuffer.slice(0));
-
-    // Esperamos TODO el proceso interno de apertura antes de soltar el libro.
     await book.ready;
 
     const metadata = await book.loaded.metadata;
@@ -98,8 +117,6 @@ export class FileImportService {
     } catch {
       coverUrl = null;
     }
-    // Sin destroy(): dejamos que el GC se encargue, así no cortamos
-    // tareas internas de epub.js a mitad de camino.
     return { title: metadata.title, author: metadata.creator, coverUrl };
   }
 
@@ -118,11 +135,6 @@ export class FileImportService {
     return relativePath;
   }
 
-  /**
-   * Resuelve la ruta guardada de una portada a algo que un <img> pueda
-   * mostrar directamente. En Android usa el esquema especial de Capacitor;
-   * en web (dev) reconstruye un data: URI leyendo el archivo.
-   */
   async getCoverSrc(coverPath?: string): Promise<string | null> {
     if (!coverPath) return null;
 
@@ -142,12 +154,12 @@ export class FileImportService {
   }
 }
 
-// ── Helpers de conversión ──────────────────────────────────────────────
+// ── Helpers de conversión (sin cambios) ──────────────────────────────────
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = '';
   const bytes = new Uint8Array(buffer);
-  const chunkSize = 8192; // evita "Maximum call stack size exceeded" en libros grandes
+  const chunkSize = 8192;
   for (let i = 0; i < bytes.length; i += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
@@ -165,42 +177,29 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 
 function mimeToExtension(mime: string): string {
   switch (mime) {
-    case 'image/png':
-      return 'png';
-    case 'image/jpeg':
-      return 'jpg';
-    case 'image/webp':
-      return 'webp';
-    case 'image/gif':
-      return 'gif';
-    default:
-      return 'jpg'; // fallback razonable: la mayoría de portadas EPUB son jpeg
+    case 'image/png': return 'png';
+    case 'image/jpeg': return 'jpg';
+    case 'image/webp': return 'webp';
+    case 'image/gif': return 'gif';
+    default: return 'jpg';
   }
 }
 
 function extensionToMime(ext?: string): string {
   switch (ext) {
-    case 'png':
-      return 'image/png';
-    case 'webp':
-      return 'image/webp';
-    case 'gif':
-      return 'image/gif';
+    case 'png': return 'image/png';
+    case 'webp': return 'image/webp';
+    case 'gif': return 'image/gif';
     case 'jpg':
     case 'jpeg':
-    default:
-      return 'image/jpeg';
+    default: return 'image/jpeg';
   }
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      // result viene como "data:image/png;base64,AAAA..." — nos quedamos solo con el base64
-      resolve(result.split(',')[1]);
-    };
+    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });

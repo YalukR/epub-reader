@@ -7,7 +7,7 @@ import {
 } from '@capacitor-community/sqlite';
 
 const DB_NAME = 'epub_reader_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 @Injectable({ providedIn: 'root' })
 export class DatabaseService {
@@ -95,6 +95,14 @@ export class DatabaseService {
             FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
           );`,
           `CREATE INDEX IF NOT EXISTS idx_bookmarks_book_id ON bookmarks(book_id);`,
+        ],
+      },
+
+      {
+        toVersion: 2,
+        statements: [
+          `ALTER TABLE books ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;`,
+          `ALTER TABLE books ADD COLUMN last_read_at INTEGER;`,
         ],
       },
     ]);

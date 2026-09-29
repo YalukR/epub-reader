@@ -8,6 +8,7 @@ import { PageFooter } from './layout/page-footer/page-footer';
 import { MessageService } from 'primeng/api';
 import { WarnDialog } from './shared/warn-dialog/warn-dialog';
 import { DatabaseService } from './core/services/database.service';
+import { IntentHandlerService } from './core/services/intent-handler.service';
 
 @Component({
   selector: 'app-root',
@@ -19,6 +20,7 @@ import { DatabaseService } from './core/services/database.service';
 export class App implements OnInit {
   private router = inject(Router);
   databaseService = inject(DatabaseService);
+  private intentHandlerService = inject(IntentHandlerService);
   protected readonly title = signal('mood-tracker');
 
   private currentUrl = toSignal(
@@ -35,7 +37,7 @@ export class App implements OnInit {
     return !url.startsWith('/setup') && !url.startsWith('/lock');
   });
 
-
-  async ngOnInit(): Promise<void> { }
-
+  async ngOnInit(): Promise<void> {
+    await this.intentHandlerService.init();
+  }
 }

@@ -20,13 +20,19 @@ export class BookCard {
 
   openBook = output<void>();
   deleteBook = output<void>();
+  togglePin = output<void>();
 
   handleTap(): void {
     this.openBook.emit();
   }
 
+  onTogglePin(event: MouseEvent): void {
+    event.stopPropagation();
+    this.togglePin.emit();
+  }
+
   async onDelete(event: MouseEvent): Promise<void> {
-    event.stopPropagation(); // evita que también dispare handleTap()
+    event.stopPropagation();
 
     const confirmed = await this.warnDialog.confirm({
       title: 'Borrar libro',

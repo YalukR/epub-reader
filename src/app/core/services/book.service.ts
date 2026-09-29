@@ -4,11 +4,17 @@ import { Book } from '../models/database.model';
 
 @Injectable({ providedIn: 'root' })
 export class BookService {
-  constructor(private databaseService: DatabaseService) {}
+  constructor(private databaseService: DatabaseService) { }
 
   async getAllBooks(): Promise<Book[]> {
     const result = await this.databaseService.run((db) =>
-      db.query('SELECT * FROM books ORDER BY added_at DESC;')
+      db.query(`
+        SELECT * FROM books
+        ORDER BY
+          is_pinned DESC,
+          last_read_at IS NULL, last_read_at DESC,
+          added_at DESC;
+      `)
     );
     return (result.values ?? []).map(rowToBook);
   }
@@ -52,6 +58,21 @@ export class BookService {
     );
     await this.databaseService.saveToStore();
   }
+
+  async togglePin(id: number, pinned: boolean): Promise<void> {
+    await this.databaseService.run((db) =>
+      db.run('UPDATE books SET is_pinned = ? WHERE id = ?;', [pinned ? 1 : 0, id])
+    );
+    await this.databaseService.saveToStore();
+  }
+
+  /** Llamar cada vez que el usuario ABRE un libro (no en cada avance de página). */
+  async markAsOpened(id: number): Promise<void> {
+    await this.databaseService.run((db) =>
+      db.run('UPDATE books SET last_read_at = ? WHERE id = ?;', [Date.now(), id])
+    );
+    await this.databaseService.saveToStore();
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -66,5 +87,7 @@ function rowToBook(row: any): Book {
     language: row.language ?? undefined,
     fileSize: row.file_size ?? undefined,
     addedAt: row.added_at,
+    isPinned: !!row.is_pinned,
+    lastReadAt: row.last_read_at ?? undefined,
   };
 }

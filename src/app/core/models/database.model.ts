@@ -7,6 +7,8 @@ export interface Book {
   language?: string;
   fileSize?: number;
   addedAt: number;
+  isPinned?: boolean;
+  lastReadAt?: number;
 }
 
 export interface ReadingProgress {
