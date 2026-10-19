@@ -1,6 +1,14 @@
-/* El contenido del EPUB vive dentro de un iframe inyectado por epub.js;
-   nos aseguramos de que ocupe todo el contenedor sin scroll propio. */
 :host {
   display: block;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+:host ::ng-deep .epub-container {
+  overflow: hidden !important;
+  scrollbar-width: none;
+}
+
+:host ::ng-deep .epub-container::-webkit-scrollbar {
+  display: none;
 }

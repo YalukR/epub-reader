@@ -9,16 +9,17 @@ export class BookService {
   async getAllBooks(): Promise<Book[]> {
     const result = await this.databaseService.run((db) =>
       db.query(`
-        SELECT * FROM books
-        ORDER BY
-          is_pinned DESC,
-          last_read_at IS NULL, last_read_at DESC,
-          added_at DESC;
-      `)
+      SELECT b.*, rp.percentage AS progress
+      FROM books b
+      LEFT JOIN reading_progress rp ON rp.book_id = b.id
+      ORDER BY
+        b.is_pinned DESC,
+        b.last_read_at IS NULL, b.last_read_at DESC,
+        b.added_at DESC;
+    `)
     );
     return (result.values ?? []).map(rowToBook);
   }
-
   async getBookById(id: number): Promise<Book | null> {
     const result = await this.databaseService.run((db) =>
       db.query('SELECT * FROM books WHERE id = ?;', [id])
@@ -73,7 +74,26 @@ export class BookService {
     );
     await this.databaseService.saveToStore();
   }
+
+  async markAsFinished(id: number): Promise<void> {
+    await this.databaseService.run((db) =>
+      db.run(
+        'UPDATE books SET finished_at = COALESCE(finished_at, ?) WHERE id = ?;',
+        [Date.now(), id]
+      )
+    );
+    await this.databaseService.saveToStore();
+  }
+
+  async markAsUnfinished(id: number): Promise<void> {
+    await this.databaseService.run((db) =>
+      db.run('UPDATE books SET finished_at = NULL WHERE id = ?;', [id])
+    );
+    await this.databaseService.saveToStore();
+  }
 }
+
+
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -89,5 +109,7 @@ function rowToBook(row: any): Book {
     addedAt: row.added_at,
     isPinned: !!row.is_pinned,
     lastReadAt: row.last_read_at ?? undefined,
+    finishedAt: row.finished_at ?? undefined,
+    progress: row.progress ?? undefined,
   };
 }

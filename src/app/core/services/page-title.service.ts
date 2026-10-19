@@ -15,6 +15,7 @@ export interface FooterProgress {
   onToggleCarousel: () => void;
   pageCfis: string[];
   currentPageIndex: number;
+  bookmarkedIndices?: number[];
   onPageSelected: (index: number) => void;
 }
 

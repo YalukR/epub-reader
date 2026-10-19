@@ -5,23 +5,23 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Modo claro — sin cambios */
-  --color-blue: #a8763f;
-  --color-blue-soft: #f5ecdd;
+  /* Modo claro — papel */
+  --color-blue: #9a6a35;
+  --color-blue-soft: #efe3c8;
   --color-green: #4d7c4a;
-  --color-green-soft: #eef5ea;
-  --color-surface-white: #faf6ee;
-  --color-surface-alt: #f0e9d8;
-  --color-border: #e2d8c3;
-  --color-muted: #8a7f6a;
-  --color-main: #2b2620;
-  --color-danger: #c0392b;
+  --color-green-soft: #e8efdc;
+  --color-surface-white: #f6efdf;
+  --color-surface-alt: #ebe2cc;
+  --color-border: #d9cdb2;
+  --color-muted: #75694f;
+  --color-main: #33291f;
+  --color-danger: #b5382a;
 
-  /* Cian — primario en modo oscuro, del color de tipos en tu captura */
+  /* Cian — primario en modo oscuro */
   --color-blue-dark: #5fd3e8;
   --color-blue-soft-dark: #16282c;
 
-  /* Verde lima — del color de funciones en tu captura */
+  /* Verde lima */
   --color-green-dark: #a8d46c;
   --color-green-soft-dark: #1c2517;
 
@@ -32,11 +32,10 @@
   --color-muted-dark: #8a8a7c;
   --color-main-dark: #d8d8d4;
 
-  /* Rojo — la captura no tenía uno nativo, elegí un coral que combina con el salmón de los strings */
+  /* Coral */
   --color-danger-dark: #e06c75;
 }
 
-/* ...el resto de las transiciones de vista no cambia... */
 /* ============================================
    Transiciones de navegación — slide aleatorio
    (solo afecta .page-content, footer estático)
@@ -199,4 +198,18 @@ html[data-transition='slide-down']::view-transition-new(page-content) {
   --p-toast-warn-detail-color: var(--color-muted-dark) !important;
   --p-toast-warn-close-button-color: var(--color-muted-dark) !important;
   --p-toast-warn-close-button-hover-background: color-mix(in srgb, var(--color-border-dark) 40%, transparent) !important;
+}
+
+/* ============================================
+   Textura de papel (solo modo claro)
+   Ajusta opacity: 0.08 casi imperceptible, 0.25 áspero
+   ============================================ */
+:root:not(.dark) body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.27 0 0 0 0 0.18 1.2 0 0 0 -0.4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

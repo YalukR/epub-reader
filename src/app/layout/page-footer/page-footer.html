@@ -3,8 +3,7 @@
            dark:border-border-dark dark:bg-surface-white-dark/90
            [padding-bottom:calc(0.5rem+env(safe-area-inset-bottom))] relative">
 
-  <button
-    (click)="f.onToggleCarousel()"
+  <button (click)="f.onToggleCarousel()"
     [attr.aria-label]="f.isCarouselOpen ? 'Cerrar vista de páginas' : 'Ver páginas'"
     [attr.aria-expanded]="f.isCarouselOpen"
     class="absolute -top-6 left-1/2 flex h-6 w-11 -translate-x-1/2 items-center justify-center rounded-t-lg bg-surface-white/90 text-muted shadow-sm backdrop-blur-md dark:bg-surface-white-dark/90 dark:text-muted-dark">
@@ -12,29 +11,26 @@
   </button>
 
   @if (f.isCarouselOpen) {
-    <div #scroller class="-mx-4 mb-2 flex gap-2 overflow-x-auto border-b border-border px-4 pb-2 scroll-smooth dark:border-border-dark">
-      @for (cfi of f.pageCfis; track cfi; let i = $index) {
-        <button
-          type="button"
-          (click)="f.onPageSelected(i)"
-          [attr.data-index]="i"
-          [attr.aria-label]="'Ir a la página ' + (i + 1)"
-          [attr.aria-current]="i === f.currentPageIndex ? 'page' : null"
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-medium transition"
-          [class.border-blue]="i === f.currentPageIndex"
-          [class.dark:border-blue-dark]="i === f.currentPageIndex"
-          [class.bg-blue]="i === f.currentPageIndex"
-          [class.dark:bg-blue-dark]="i === f.currentPageIndex"
-          [class.text-white]="i === f.currentPageIndex"
-          [class.border-border]="i !== f.currentPageIndex"
-          [class.dark:border-border-dark]="i !== f.currentPageIndex"
-          [class.text-muted]="i !== f.currentPageIndex"
-          [class.dark:text-muted-dark]="i !== f.currentPageIndex"
-        >
-          {{ i + 1 }}
-        </button>
+  <div #scroller
+    class="-mx-4 mb-2 flex gap-2 overflow-x-auto border-b border-border px-4 pb-2 pt-2 scroll-smooth dark:border-border-dark">
+    @for (cfi of f.pageCfis; track cfi; let i = $index) {
+    <button type="button" (click)="f.onPageSelected(i)" [attr.data-index]="i"
+      [attr.aria-label]="'Ir a la página ' + (i + 1) + (bookmarked().has(i) ? ' (marcada)' : '')"
+      [attr.aria-current]="i === f.currentPageIndex ? 'page' : null"
+      class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-medium transition"
+      [class.border-blue]="i === f.currentPageIndex" [class.dark:border-blue-dark]="i === f.currentPageIndex"
+      [class.bg-blue]="i === f.currentPageIndex" [class.dark:bg-blue-dark]="i === f.currentPageIndex"
+      [class.text-white]="i === f.currentPageIndex" [class.border-border]="i !== f.currentPageIndex"
+      [class.dark:border-border-dark]="i !== f.currentPageIndex" [class.text-muted]="i !== f.currentPageIndex"
+      [class.dark:text-muted-dark]="i !== f.currentPageIndex">
+      {{ i + 1 }}
+      @if (bookmarked().has(i)) {
+      <i
+        class="pi pi-bookmark-fill absolute -right-0.5 -top-1.5 text-[11px] text-danger drop-shadow dark:text-danger-dark"></i>
       }
-    </div>
+    </button>
+    }
+  </div>
   }
 
   <div class="flex items-center gap-3">

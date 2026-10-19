@@ -9,6 +9,7 @@ import { MessageService } from 'primeng/api';
 import { WarnDialog } from './shared/warn-dialog/warn-dialog';
 import { DatabaseService } from './core/services/database.service';
 import { IntentHandlerService } from './core/services/intent-handler.service';
+import { ImmersiveService } from './core/services/immersive.service';
 
 @Component({
   selector: 'app-root',
@@ -23,6 +24,15 @@ export class App implements OnInit {
   private intentHandlerService = inject(IntentHandlerService);
   protected readonly title = signal('mood-tracker');
 
+  immersive = inject(ImmersiveService);
+
+  showChrome = computed(() => {
+    const url = this.currentUrl();
+    return !url.startsWith('/setup') && !url.startsWith('/lock');
+  });
+
+  chromeVisible = computed(() => this.showChrome() && !this.immersive.active());
+
   private currentUrl = toSignal(
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
@@ -31,11 +41,6 @@ export class App implements OnInit {
     ),
     { initialValue: this.router.url }
   );
-
-  showChrome = computed(() => {
-    const url = this.currentUrl();
-    return !url.startsWith('/setup') && !url.startsWith('/lock');
-  });
 
   async ngOnInit(): Promise<void> {
     await this.intentHandlerService.init();

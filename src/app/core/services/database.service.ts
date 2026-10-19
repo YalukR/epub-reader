@@ -7,7 +7,7 @@ import {
 } from '@capacitor-community/sqlite';
 
 const DB_NAME = 'epub_reader_db';
-const DB_VERSION = 2;
+const DB_VERSION = 5;
 
 @Injectable({ providedIn: 'root' })
 export class DatabaseService {
@@ -103,6 +103,42 @@ export class DatabaseService {
         statements: [
           `ALTER TABLE books ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;`,
           `ALTER TABLE books ADD COLUMN last_read_at INTEGER;`,
+        ],
+      },
+      {
+        toVersion: 3,
+        statements: [
+          `ALTER TABLE books ADD COLUMN finished_at INTEGER;`,
+          // Backfill: libros que ya estaban al 100% antes de esta versión
+          `UPDATE books SET finished_at = (
+       SELECT updated_at FROM reading_progress WHERE book_id = books.id
+     )
+     WHERE id IN (SELECT book_id FROM reading_progress WHERE percentage >= 100);`,
+        ],
+      },
+      {
+        toVersion: 4,
+        statements: [
+          `CREATE TABLE IF NOT EXISTS highlights (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      cfi_range TEXT NOT NULL,
+      text TEXT NOT NULL,
+      note TEXT,
+      color TEXT NOT NULL DEFAULT '#FFEB3B',
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+    );`,
+          `CREATE INDEX IF NOT EXISTS idx_highlights_book_id ON highlights(book_id);`,
+        ],
+      },
+      {
+        toVersion: 5,
+        statements: [
+          `CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );`,
         ],
       },
     ]);

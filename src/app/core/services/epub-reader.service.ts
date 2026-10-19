@@ -1,11 +1,22 @@
 import { Injectable, NgZone } from '@angular/core';
 import ePub, { Book, Rendition, NavItem } from 'epubjs';
 import { EpubPageThumbnailsService } from './epub-page-thumbnails.service';
+import { ReaderFont } from '../models/common.model';
 
 export interface ReaderLocation {
   cfi: string;
   percentage: number; // 0-100
 }
+
+export const READER_FONTS: ReaderFont[] = [
+  { id: 'original', label: 'Original', css: null },
+  { id: 'serif', label: 'Serif', css: "Georgia, 'Times New Roman', serif" },
+  { id: 'times', label: 'Times', css: "'Times New Roman', Times, serif" },
+  { id: 'sans', label: 'Sans serif', css: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  { id: 'roboto', label: 'Roboto', css: "Roboto, 'Segoe UI', sans-serif" },
+  { id: 'mono', label: 'Monoespaciada', css: "'Courier New', Courier, monospace" },
+  { id: 'cursive', label: 'Cursiva', css: "'Segoe Script', 'Brush Script MT', 'Comic Sans MS', cursive" },
+];
 
 @Injectable({ providedIn: 'root' })
 export class EpubReaderService {
@@ -34,6 +45,7 @@ export class EpubReaderService {
       this.stopWatchingForUncaughtEpubErrors();
     }
   }
+
 
   private async doOpen(container: HTMLElement, startCfi?: string): Promise<void> {
     await this.book!.ready;
@@ -146,6 +158,36 @@ export class EpubReaderService {
     });
   }
 
+  /** Se dispara cuando el usuario selecciona texto dentro del libro. */
+  onTextSelected(callback: (sel: { cfiRange: string; text: string }) => void): void {
+    if (!this.rendition) return;
+    this.rendition.on('selected', (cfiRange: string) => {
+      const text = this.rendition?.getRange(cfiRange)?.toString().trim() ?? '';
+      if (!text) return;
+      this.zone.run(() => callback({ cfiRange, text }));
+    });
+  }
+
+  clearSelection(): void {
+    const contents: any = this.rendition?.getContents();
+    const list: any[] = Array.isArray(contents) ? contents : contents ? [contents] : [];
+    list.forEach((c) => c.window?.getSelection()?.removeAllRanges());
+  }
+
+  addHighlight(cfiRange: string, color: string, onClick: () => void): void {
+    this.rendition?.annotations.highlight(
+      cfiRange,
+      {},
+      () => this.zone.run(onClick),
+      'app-highlight',
+      { fill: color, 'fill-opacity': '0.4', 'mix-blend-mode': 'normal' }
+    );
+  }
+
+  removeHighlight(cfiRange: string): void {
+    this.rendition?.annotations.remove(cfiRange, 'highlight');
+  }
+
   async next(): Promise<void> {
     await this.rendition?.next();
   }
@@ -228,11 +270,11 @@ export class EpubReaderService {
 
   private readonly lightThemeRules = {
     body: {
-      background: '#faf6ee !important',
-      color: '#2b2620 !important',
+      background: '#f6efdf !important',
+      color: '#33291f !important',
     },
     'a, a:link': {
-      color: '#a8763f !important',
+      color: '#9a6a35 !important',
     },
   };
 
@@ -246,6 +288,34 @@ export class EpubReaderService {
     },
   };
 
+
+  private fontFamily: string | null = null;
+  private lineHeight: number | null = null;
+  private relayoutTimer?: ReturnType<typeof setTimeout>;
+
+  private reapplyTheme(): void {
+    const contents: any = this.rendition?.getContents();
+    const list: any[] = Array.isArray(contents) ? contents : contents ? [contents] : [];
+    list.forEach((c) => this.applyThemeToContent(c));
+  }
+
+  setFontFamily(css: string | null): void {
+    this.fontFamily = css;
+    this.reapplyTheme();
+    this.relayout();
+  }
+
+  setLineHeight(value: number | null): void {
+    this.lineHeight = value;
+    this.reapplyTheme();
+    this.relayout();
+  }
+
+  /** Re-pagina el libro (con debounce, para que los botones +/- no lo disparen en cada toque). */
+  relayout(delay = 120): void {
+    clearTimeout(this.relayoutTimer);
+    this.relayoutTimer = setTimeout(() => window.dispatchEvent(new Event('resize')), delay);
+  }
   // Estado actual del tema, independiente de epub.js: es la fuente de
   // verdad que usamos tanto para pintar la página visible como para
   // repintar cada página nueva que epub.js vaya renderizando.
@@ -275,15 +345,22 @@ export class EpubReaderService {
     if (!doc) return;
 
     const rules = this.isDarkMode ? this.darkThemeRules : this.lightThemeRules;
+    let css = this.rulesToCss(rules);
+    if (this.fontFamily) {
+      css += `\nbody, body * { font-family: ${this.fontFamily} !important; }`;
+    }
+    if (this.lineHeight) {
+      css += `\nbody, body * { line-height: ${this.lineHeight} !important; }`;
+    }
+
     let styleEl = doc.getElementById('app-theme-style') as HTMLStyleElement | null;
     if (!styleEl) {
       styleEl = doc.createElement('style');
       styleEl.id = 'app-theme-style';
       doc.head?.appendChild(styleEl);
     }
-    styleEl.textContent = this.rulesToCss(rules);
+    styleEl.textContent = css;
   }
-
   private rulesToCss(rules: Record<string, Record<string, string>>): string {
     return Object.entries(rules)
       .map(([selector, props]) => {
@@ -293,5 +370,21 @@ export class EpubReaderService {
         return `${selector} { ${body} }`;
       })
       .join('\n');
+  }
+
+  /** Toque simple dentro del libro (ignora enlaces y toques que cierran una selección). */
+  onTap(callback: () => void): void {
+    if (!this.rendition) return;
+    this.rendition.on('click', (e: MouseEvent, contents: any) => {
+      if (contents?.window?.getSelection()?.toString()) return;
+      if ((e.target as HTMLElement | null)?.closest?.('a')) return;
+      this.zone.run(callback);
+    });
+  }
+
+  /** Re-maqueta el libro tras cambiar el tamaño del contenedor, conservando la posición. */
+  refreshLayout(): void {
+    // Espera a que termine la transición de header/footer (280 ms).
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
   }
 }

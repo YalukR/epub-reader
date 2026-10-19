@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, ElementRef, ViewChild, effect } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, ElementRef, ViewChild, effect, computed } from '@angular/core';
 import { PageTitleService } from '../../core/services/page-title.service';
 
 @Component({
@@ -12,6 +12,7 @@ export class PageFooter {
   private pageTitleService = inject(PageTitleService);
 
   footer = this.pageTitleService.footer;
+  bookmarked = computed(() => new Set(this.footer()?.bookmarkedIndices ?? []));
 
   @ViewChild('scroller') private scrollerRef?: ElementRef<HTMLDivElement>;
 

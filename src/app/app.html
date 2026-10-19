@@ -1,20 +1,32 @@
-<div class="min-h-screen bg-surface-alt [padding-top:max(1.5rem,env(safe-area-inset-top))] dark:bg-surface-white-dark">
-  @if (showChrome()) {
-  <app-page-header></app-page-header>
+<div class="flex h-dvh flex-col bg-surface-white [padding-top:max(1.5rem,env(safe-area-inset-top))] dark:bg-surface-white-dark">
+    @if (showChrome()) {
+    <div class="chrome-collapse" [class.collapsed]="immersive.active()">
+      <div class="chrome-inner" [class.clip]="immersive.active() || immersive.animating()">
+        <app-page-header class="block"></app-page-header>
+      </div>
+    </div>
   }
+
   <div
-    class="page-content px-4 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+    [class.immersive]="immersive.active()"
+    class="page-content flex min-h-0 flex-1 flex-col overflow-y-auto px-4 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
     <p-toast position="top-center" />
     <app-warn-dialog />
-    <br>
+    <div class="shrink-0 transition-[height] duration-[280ms] ease-out"
+      [class.h-6]="!immersive.active()" [class.h-0]="immersive.active()"></div>
     <router-outlet />
     @if (databaseService.initError(); as err) {
-    <div style="background:#5a1a1a; color:#fff; padding:8px; font-size:12px; word-break:break-all;">
-      DB init falló: {{ err }}
-    </div>
-    }
-    @if (showChrome()) {
-    <app-page-footer></app-page-footer>
+      <div style="background:#5a1a1a; color:#fff; padding:8px; font-size:12px; word-break:break-all;">
+        DB init falló: {{ err }}
+      </div>
     }
   </div>
+
+  @if (showChrome()) {
+    <div class="chrome-collapse" [class.collapsed]="immersive.active()">
+      <div class="chrome-inner" [class.clip]="immersive.active() || immersive.animating()">
+        <app-page-footer class="block"></app-page-footer>
+      </div>
+    </div>
+  }
 </div>

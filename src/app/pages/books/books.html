@@ -12,7 +12,18 @@
       placeholder="Buscar por título o autor..."
       class="w-full rounded-lg border border-border dark:border-border-dark bg-surface-alt dark:bg-surface-alt-dark py-2 pl-9 pr-3 text-sm text-main dark:text-main-dark placeholder:text-muted dark:placeholder:text-muted-dark" />
   </div>
-  <br>
+
+  <div class="flex gap-2 mb-6">
+    @for (f of filters; track f.value) {
+    <button type="button" (click)="filter.set(f.value)"
+      class="rounded-full px-4 py-1.5 text-sm border transition-colors"
+      [class]="filter() === f.value
+            ? 'bg-blue-soft text-blue border-blue dark:bg-blue-soft-dark dark:text-blue-dark dark:border-blue-dark'
+            : 'bg-surface-alt dark:bg-surface-alt-dark text-muted dark:text-muted-dark border-border dark:border-border-dark'">
+      {{ f.label }}
+    </button>
+    }
+  </div>
   }
 
   @if (books().length === 0) {
@@ -25,7 +36,13 @@
   </div>
   } @else if (filteredBooks().length === 0) {
   <p class="text-center text-sm text-muted dark:text-muted-dark py-16">
+    @if (searchTerm()) {
     Sin resultados para "{{ searchTerm() }}".
+    } @else if (filter() === 'finished') {
+    Aún no has terminado ningún libro.
+    } @else {
+    No tienes libros por leer.
+    }
   </p>
   } @else {
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">

@@ -1,55 +1,128 @@
 <p-drawer [visible]="open" (visibleChange)="onOpenChange($event)" position="bottom" styleClass="!h-auto !rounded-t-2xl">
   <ng-template #headless>
-    <div class="bg-surface-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] dark:bg-surface-white-dark">
-      <!-- Manija visual: refuerza que esto es un panel arrastrable hacia abajo -->
+    <div
+      class="max-h-[85dvh] overflow-y-auto overscroll-contain bg-surface-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] dark:bg-surface-white-dark">
+
+      <!-- Manija -->
       <div class="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border dark:bg-border-dark"></div>
 
-      <label class="mb-3 flex items-center justify-between text-sm text-muted dark:text-muted-dark">
-        <span>Tamaño de texto</span>
-        <span class="font-medium text-main dark:text-main-dark">{{ fontSize }}%</span>
-      </label>
-
-      <!-- Botones +/- para ajustar sin depender de precisión de arrastre en pantallas táctiles -->
-      <div class="flex items-center gap-3">
-        <button
-          (click)="decreaseFontSize()"
-          [disabled]="fontSize <= 70"
-          aria-label="Reducir tamaño de texto"
-          class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-surface-alt text-main
-                 transition-colors active:bg-border disabled:opacity-40
-                 dark:bg-surface-alt-dark dark:text-main-dark dark:active:bg-border-dark"
-        >
-          <i class="pi pi-minus text-sm"></i>
-        </button>
-
-        <p-slider
-          class="flex-1"
-          [ngModel]="fontSize"
-          (ngModelChange)="fontSizeChange.emit($event)"
-          [min]="70"
-          [max]="200"
-          [step]="10"
-        />
-
-        <button
-          (click)="increaseFontSize()"
-          [disabled]="fontSize >= 200"
-          aria-label="Aumentar tamaño de texto"
-          class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-surface-alt text-main
-                 transition-colors active:bg-border disabled:opacity-40
-                 dark:bg-surface-alt-dark dark:text-main-dark dark:active:bg-border-dark"
-        >
-          <i class="pi pi-plus text-sm"></i>
+      <!-- Encabezado -->
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-main dark:text-main-dark">Ajustes de lectura</h2>
+        <button type="button" (click)="close()" aria-label="Cerrar"
+          class="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors active:bg-surface-alt dark:text-muted-dark dark:active:bg-surface-alt-dark">
+          <i class="pi pi-times text-sm"></i>
         </button>
       </div>
 
-      <!-- Vista previa en vivo del tamaño elegido -->
-      <p
-        class="mt-4 truncate text-main dark:text-main-dark"
-        [style.font-size.%]="fontSize"
-      >
-        Aa — así se verá el texto
-      </p>
+      <!-- Vista previa en vivo -->
+      <div
+        class="mt-4 h-32 overflow-hidden rounded-2xl border border-border bg-surface-alt py-3 dark:border-border-dark dark:bg-surface-alt-dark"
+        [style.padding-inline.px]="12 + margin / 2">
+        <p class="text-main dark:text-main-dark" [style.font-size.%]="fontSize" [style.line-height]="lineHeight"
+          [style.font-family]="currentFontCss">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
+          magna aliqua.
+        </p>
+      </div>
+
+      <!-- Tamaño de texto -->
+      <section class="mt-5">
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-xs font-medium uppercase tracking-wide text-muted dark:text-muted-dark">Tamaño</span>
+          <span class="text-sm font-medium text-main dark:text-main-dark">{{ fontSize }}%</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button type="button" (click)="decreaseFontSize()" [disabled]="fontSize <= 70"
+            aria-label="Reducir tamaño de texto"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-alt text-main transition-colors active:bg-border disabled:opacity-40 dark:bg-surface-alt-dark dark:text-main-dark dark:active:bg-border-dark">
+            <span class="text-xs font-semibold">A</span>
+          </button>
+
+          <p-slider class="flex-1" [ngModel]="fontSize" (ngModelChange)="fontSizeChange.emit($event)" [min]="70"
+            [max]="200" [step]="10" />
+
+          <button type="button" (click)="increaseFontSize()" [disabled]="fontSize >= 200"
+            aria-label="Aumentar tamaño de texto"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-alt text-main transition-colors active:bg-border disabled:opacity-40 dark:bg-surface-alt-dark dark:text-main-dark dark:active:bg-border-dark">
+            <span class="text-xl font-semibold leading-none">A</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Tipo de letra: tira horizontal -->
+      <section class="mt-5">
+        <span class="mb-2 block text-xs font-medium uppercase tracking-wide text-muted dark:text-muted-dark">
+          Tipo de letra
+        </span>
+        <div
+          class="-mx-5 flex snap-x gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          @for (f of fonts; track f.id) {
+          <button type="button" (click)="fontIdChange.emit(f.id)" [attr.aria-pressed]="fontId === f.id"
+            class="flex h-[72px] w-[84px] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl border transition-colors active:opacity-70"
+            [class]="fontId === f.id
+                ? 'border-blue bg-blue-soft text-blue dark:border-blue-dark dark:bg-blue-soft-dark dark:text-blue-dark'
+                : 'border-border bg-surface-alt text-main dark:border-border-dark dark:bg-surface-alt-dark dark:text-main-dark'">
+            <span class="text-2xl leading-none" [style.font-family]="f.css">Aa</span>
+            <span class="text-[11px]">{{ f.label }}</span>
+          </button>
+          }
+        </div>
+      </section>
+
+      <!-- Interlineado y márgenes -->
+      <section class="mt-5 grid grid-cols-2 gap-3">
+        <div>
+          <span
+            class="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted dark:text-muted-dark">
+            <i class="pi pi-align-justify text-[11px]"></i> Interlineado
+          </span>
+          <div class="flex items-center justify-between rounded-xl bg-surface-alt p-1 dark:bg-surface-alt-dark">
+            <button type="button" (click)="decreaseLineHeight()" [disabled]="lineHeight <= 1.2"
+              aria-label="Reducir interlineado"
+              class="flex h-10 w-10 items-center justify-center rounded-lg text-main active:bg-border disabled:opacity-40 dark:text-main-dark dark:active:bg-border-dark">
+              <i class="pi pi-minus text-xs"></i>
+            </button>
+            <span class="text-sm font-medium text-main dark:text-main-dark">{{ lineHeight.toFixed(1) }}</span>
+            <button type="button" (click)="increaseLineHeight()" [disabled]="lineHeight >= 2.2"
+              aria-label="Aumentar interlineado"
+              class="flex h-10 w-10 items-center justify-center rounded-lg text-main active:bg-border disabled:opacity-40 dark:text-main-dark dark:active:bg-border-dark">
+              <i class="pi pi-plus text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <span
+            class="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted dark:text-muted-dark">
+            <i class="pi pi-arrows-h text-[11px]"></i> Márgenes
+          </span>
+          <div class="flex items-center justify-between rounded-xl bg-surface-alt p-1 dark:bg-surface-alt-dark">
+            <button type="button" (click)="decreaseMargin()" [disabled]="margin <= 0" aria-label="Reducir márgenes"
+              class="flex h-10 w-10 items-center justify-center rounded-lg text-main active:bg-border disabled:opacity-40 dark:text-main-dark dark:active:bg-border-dark">
+              <i class="pi pi-minus text-xs"></i>
+            </button>
+            <span class="text-sm font-medium text-main dark:text-main-dark">{{ margin }}</span>
+            <button type="button" (click)="increaseMargin()" [disabled]="margin >= 48" aria-label="Aumentar márgenes"
+              class="flex h-10 w-10 items-center justify-center rounded-lg text-main active:bg-border disabled:opacity-40 dark:text-main-dark dark:active:bg-border-dark">
+              <i class="pi pi-plus text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Marcar / desmarcar como terminado -->
+      <div class="mt-5 border-t border-border pt-4 dark:border-border-dark">
+        <button type="button" (click)="toggleFinished()"
+          class="flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm font-medium transition-colors active:opacity-70"
+          [class]="finished
+            ? 'border-border bg-surface-alt text-muted dark:border-border-dark dark:bg-surface-alt-dark dark:text-muted-dark'
+            : 'border-green bg-green-soft text-green dark:border-green-dark dark:bg-green-soft-dark dark:text-green-dark'">
+          <i class="pi" [class.pi-undo]="finished" [class.pi-check]="!finished"></i>
+          <span>{{ finished ? 'Desmarcar como terminado' : 'Marcar como terminado' }}</span>
+        </button>
+      </div>
     </div>
   </ng-template>
 </p-drawer>

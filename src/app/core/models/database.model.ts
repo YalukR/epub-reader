@@ -9,6 +9,8 @@ export interface Book {
   addedAt: number;
   isPinned?: boolean;
   lastReadAt?: number;
+  finishedAt?: number;
+  progress?: number;
 }
 
 export interface ReadingProgress {
@@ -24,5 +26,15 @@ export interface Bookmark {
   cfi: string;
   note?: string;
   color?: string;
+  createdAt: number;
+}
+
+export interface Highlight {
+  id?: number;
+  bookId: number;
+  cfiRange: string;
+  text: string;
+  note?: string;
+  color: string;
   createdAt: number;
 }

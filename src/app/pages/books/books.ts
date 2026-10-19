@@ -7,6 +7,8 @@ import { BookCard, BookWithCover } from './book-card/book-card';
 import { AddBook } from './add-book/add-book';
 import { PageTitleService } from '../../core/services/page-title.service';
 
+type BookFilter = 'all' | 'finished' | 'unread';
+
 @Component({
   selector: 'app-books',
   standalone: true,
@@ -18,16 +20,29 @@ export class Books implements OnInit, OnDestroy {
   books = signal<BookWithCover[]>([]);
   errorMessage = signal<string | null>(null);
   searchTerm = signal('');
+  filter = signal<BookFilter>('all');
+
+  readonly filters: { value: BookFilter; label: string }[] = [
+    { value: 'all', label: 'Todos' },
+    { value: 'unread', label: 'Por leer' },
+    { value: 'finished', label: 'Terminados' },
+  ];
 
   // El orden real (fijados arriba, luego últimos leídos) lo hace la query
-  // en getAllBooks(); acá solo filtramos por texto sobre lo que ya viene ordenado.
+  // en getAllBooks(); acá solo filtramos por estado y por texto sobre lo que ya viene ordenado.
   filteredBooks = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
-    if (!term) return this.books();
-    return this.books().filter(b =>
-      b.title.toLowerCase().includes(term) ||
-      (b.author?.toLowerCase().includes(term) ?? false)
-    );
+    const filter = this.filter();
+
+    return this.books().filter(b => {
+      if (filter === 'finished' && !b.finishedAt) return false;
+      if (filter === 'unread' && b.finishedAt) return false;
+      if (!term) return true;
+      return (
+        b.title.toLowerCase().includes(term) ||
+        (b.author?.toLowerCase().includes(term) ?? false)
+      );
+    });
   });
 
   @ViewChild('addBook') addBook!: AddBook;
@@ -96,7 +111,6 @@ export class Books implements OnInit, OnDestroy {
     await this.loadBooks();
   }
 
-  // TODO: requiere que book.service.ts exponga togglePin(id, pinned)
   async togglePin(book: BookWithCover): Promise<void> {
     if (!book.id) return;
     await this.bookService.togglePin(book.id, !book.isPinned);

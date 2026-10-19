@@ -1,6 +1,7 @@
 <div (click)="handleTap()" role="button" tabindex="0" (keydown.enter)="handleTap()"
     class="group relative block w-full cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface-white text-left transition active:scale-[0.99] hover:border-blue dark:border-border-dark dark:bg-surface-white-dark dark:hover:border-blue-dark">
-    <div class="aspect-[2/3] w-full overflow-hidden bg-surface-alt dark:bg-surface-alt-dark">
+
+    <div class="relative aspect-[2/3] w-full overflow-hidden bg-surface-alt dark:bg-surface-alt-dark">
         @if (book().coverSrc) {
         <img [src]="book().coverSrc" [alt]="book().title" class="h-full w-full object-cover" loading="lazy" />
         } @else {
@@ -8,6 +9,13 @@
             class="flex h-full w-full items-center justify-center bg-blue-soft text-3xl font-semibold text-blue dark:bg-blue-soft-dark dark:text-blue-dark">
             {{ book().title.charAt(0) }}
         </div>
+        }
+
+        @if (book().finishedAt) {
+        <span
+            class="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-green px-2 py-0.5 text-xs font-medium text-white shadow dark:bg-green-dark dark:text-surface-white-dark">
+            <i class="pi pi-check text-[10px]"></i> Terminado
+        </span>
         }
     </div>
 
@@ -45,5 +53,12 @@
                 </button>
             </div>
         </div>
+    </div>
+    <!-- Barra de progreso -->
+    <div class="h-1 w-full bg-surface-alt dark:bg-surface-alt-dark" role="progressbar"
+        [attr.aria-valuenow]="progressPercent()" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de lectura">
+        <div class="h-full transition-[width]" [class]="book().finishedAt
+        ? 'bg-green dark:bg-green-dark'
+        : 'bg-blue dark:bg-blue-dark'" [style.width.%]="progressPercent()"></div>
     </div>
 </div>

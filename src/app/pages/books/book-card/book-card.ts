@@ -1,4 +1,4 @@
-import { Component, input, output, inject } from '@angular/core';
+import { Component, input, output, inject, computed } from '@angular/core';
 import { Book } from '../../../core/models/database.model';
 import { WarnDialogService } from '../../../core/services/warn-dialog.service';
 
@@ -25,6 +25,12 @@ export class BookCard {
   handleTap(): void {
     this.openBook.emit();
   }
+
+  progressPercent = computed(() => {
+    const b = this.book();
+    if (b.finishedAt) return 100; // si lo marcaste manualmente, la barra va llena
+    return Math.min(100, Math.max(0, b.progress ?? 0));
+  });
 
   onTogglePin(event: MouseEvent): void {
     event.stopPropagation();

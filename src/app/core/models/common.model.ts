@@ -3,3 +3,9 @@ export interface NavItem {
   icon: string;
   label: string;
 }
+
+export interface ReaderFont {
+  id: string;
+  label: string;
+  css: string | null;
+}
